@@ -7,10 +7,9 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: [true, 'El email es requerido'],
-      unique: true, 
+      unique: true, // Index
       trim: true,
       lowercase: true,
-      index: true // Index
     },
     password: {
       type: String,
@@ -29,7 +28,7 @@ const userSchema = new Schema(
     },
     nif: {
       type: String,
-      required: [true, 'El NIF es requerido']
+      required: [true, 'El NIF es requerido'],
       trim: true,
     },
     role: {

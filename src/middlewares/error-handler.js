@@ -13,9 +13,7 @@ export const errorHandler = (err, req, res, next) => {
 
   // Si el error no está en mi clase AppError, lo convertirlo en uno
   if (!(error instanceof AppError)) {
-    const statusCode = error.statusCode || 500;
-    const message = error.message || 'Error interno del servidor';
-    error = new AppError(message, statusCode, 'INTERNAL_ERROR');
+    error = AppError.internal(err.message || 'Error inesperado');
   }
 
   // Respuesta única y estandarizada
@@ -24,7 +22,7 @@ export const errorHandler = (err, req, res, next) => {
     message: error.message,
     code: error.code,
     ...(error.details && { details: error.details }),
-    // Solo mostramos el stack trace si no estamos en producción
+    // Solo mostramos el detalle del fallo si no estamos en producción (del .env)
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 };

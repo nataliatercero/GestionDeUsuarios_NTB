@@ -83,3 +83,17 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+// Prueba de usuario
+
+export const getProfile = async (req, res) => {
+  // Si llega aquí, es que el middleware ha funcionado y ha guardado al usuario en req.user
+  res.status(200).json({
+    success: true,
+    message: `Bienvenido/a, tu ID de usuario es ${req.user._id}`,
+    user: {
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
+};

@@ -27,3 +27,13 @@ Content-Type: application/json
   "email": "TEST@USUARIO.COM",
   "password": "Password123"
 }
+
+### Prueba 4: Acceso denegado (Sin Token)
+GET http://localhost:3000/api/user/me
+
+###
+
+### Prueba 5: Acceso permitido (Con Token)
+# Importante: Copia el token que te dio el Login y pégalo después de "Bearer"
+GET http://localhost:3000/api/user/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRkNWMyODljMTViZGJmMzM3Y2M3MyIsImlhdCI6MTc3NDA1MDY0OCwiZXhwIjoxNzc0MTM3MDQ4fQ._MbTnMqgpifHXozG2qndTcW02o1caD7vCRuRUKBeMe4

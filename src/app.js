@@ -1,4 +1,5 @@
 import express from 'express';
+import { notFound, errorHandler } from './middleware/error-handler.js';
 
 const app = express();
 
@@ -9,5 +10,9 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('¡Servidor de BildyApp funcionando!');
 });
+
+// Middlewares de Error (siempre al final)
+app.use(notFound);      // Captura rutas que no existen (404)
+app.use(errorHandler);  // Procesa cualquier error y envía el JSON
 
 export default app;

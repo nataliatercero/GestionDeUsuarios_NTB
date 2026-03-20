@@ -9,7 +9,7 @@ const userSchema = new Schema(
       required: [true, 'El email es requerido'],
       unique: true, // Index
       trim: true,
-      lowercase: true,
+      lowercase: true
     },
     password: {
       type: String,
@@ -18,53 +18,50 @@ const userSchema = new Schema(
     },
     name: {
       type: String,
-      required: [true, 'El nombre es requerido'],
       trim: true
     },
     lastName: {
       type: String,
-      required: [true, 'El apellido es requerido'],
       trim: true
     },
     nif: {
       type: String,
-      required: [true, 'El NIF es requerido'],
-      trim: true,
+      trim: true
     },
     role: {
       type: String,
       enum: ['admin', 'guest'],
       default: 'admin',
-      index: true, // Index 
+      index: true // Index 
     },
     status: {
       type: String,
       enum: ['pending', 'verified'],
       default: 'pending',
-      index: true, // Index 
+      index: true // Index 
     },
     verificationCode: {
-      type: String,
+      type: String
     },
     verificationAttempts: {
       type: Number,
-      default: 3,
+      default: 3
     },
     company: {
       type: Schema.Types.ObjectId,
       ref: 'Company', // Referencia para el Populate
-      index: true,    // Index 
+      index: true    // Index 
     },
     address: {
       street: String,
       number: String,
       postal: String,
       city: String,
-      province: String,
+      province: String
     },
     deleted: {
       type: Boolean,
-      default: false, // Soft delete
+      default: false // Soft delete
     },
   },
   {
@@ -72,13 +69,14 @@ const userSchema = new Schema(
     versionKey: false, // Oculta el campo __v (Para respuestas un poco más limpias)
     // Configuración para que los Virtuals aparezcan al convertir a JSON
     toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
 // Virtual: fullName (No se almacena en la base de datos, se calcula al tranformar a JSON)
 userSchema.virtual('fullName').get(function () {
-  return `${this.name} ${this.lastName}`;
+  if (!this.name && !this.lastName) return null; // Retorna null si el usuario aún no ha completado el onboarding de nombre y apellidos
+  return `${this.name || ''} ${this.lastName || ''}`.trim(); // Elimina espacios sobrantes si falta alguno de los dos con .trim (si no hay alguno de los dos pone '' para que no salga "undefined")
 });
 
 const User = mongoose.model('User', userSchema);

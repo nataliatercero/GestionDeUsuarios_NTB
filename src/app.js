@@ -27,8 +27,8 @@ app.use(limiter);
 app.use(express.json());
 
 // LIMPIEZA
-
-
+app.use(sanitizeBody); 
+app.use(limitStringLength(5000)); // Limitamos a 5000 caracteres por seguridad
 
 // RUTAS
 

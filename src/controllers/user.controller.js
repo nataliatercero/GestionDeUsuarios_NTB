@@ -1,6 +1,10 @@
 import User from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+
+// REGISTRO
 
 export const register = async (req, res, next) => {
   try {
@@ -39,5 +43,43 @@ export const register = async (req, res, next) => {
 
   } catch (error) {
     next(error); // El errorHandler se encarga del resto
+  }
+};
+
+// LOGIN
+
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    // Buscar al usuario y pedir el password 
+    const user = await User.findOne({ email }).select('+password');
+    
+    // Si no existe o la contraseña no coincide, lanzamos error genérico
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      // Usamos el 401 (No autorizado) para fallos de credenciales
+      return next(new AppError('Email o contraseña incorrectos', 401, 'INVALID_CREDENTIALS'));
+    }
+
+    // Generar el Token (JWT)
+    const token = jwt.sign(
+      { id: user._id }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '24h' }
+    );
+
+    // Respuesta con el token
+    res.status(200).json({
+      success: true,
+      message: 'Login correcto',
+      token,
+      data: {
+        id: user._id,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    next(error);
   }
 };

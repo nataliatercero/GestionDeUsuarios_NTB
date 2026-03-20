@@ -18,3 +18,12 @@ Content-Type: application/json
   "password": "Password123",
   "campo_hacker": "esto_deberia_desaparecer"
 }
+
+### Prueba 3: Login Correcto (Debe devolver el Token)
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+  "email": "TEST@USUARIO.COM",
+  "password": "Password123"
+}

@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit'
 import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -33,9 +34,7 @@ app.use(limitStringLength(5000)); // Limitamos a 5000 caracteres por seguridad
 // RUTAS
 
 // Ruta de prueba
-app.get('/', (req, res) => {
-  res.send('¡Servidor de BildyApp funcionando!');
-});
+app.use('/api/user', userRoutes);
 
 // MIDDLEWARES DE ERROR (Siempre al final)
 app.use(notFound);      // Captura rutas que no existen (404)

@@ -1,4 +1,5 @@
 import { AppError } from '../utils/AppError.js';
+import { ZodError } from 'zod';
 
 export const validate = (schema) => (req, res, next) => {
   try {
@@ -16,9 +17,10 @@ export const validate = (schema) => (req, res, next) => {
     next(); // Si todo es correcto, pasamos al siguiente middleware
   } catch (error) {
         // Zod mete los errores en .errors, si no existe es otro tipo de error
-        if (error.errors) {
-            const details = error.errors.map(e => ({
-                field: e.path.join('.'),
+        // Si es un error de Zod, lo formateamos nosotros
+            if (error instanceof ZodError) {
+                const details = error.errors.map(e => ({
+                field: e.path.join('.'), // Convierte ['body', 'email'] en "body.email"
                 message: e.message
             }));
             return next(AppError.validation('Error de validación en los datos', details));

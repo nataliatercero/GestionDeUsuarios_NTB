@@ -1,0 +1,20 @@
+### Prueba 1: Registro con errores (Debe devolver 400 Validation Error)
+POST http://localhost:3000/api/user/register
+Content-Type: application/json
+
+{
+  "email": "correo-invalido",
+  "password": "123"
+}
+
+###
+
+### Prueba 2: Registro con éxito (Debe devolver 200 OK y limpiar campos extra)
+POST http://localhost:3000/api/user/register
+Content-Type: application/json
+
+{
+  "email": "TEST@USUARIO.COM",
+  "password": "Password123",
+  "campo_hacker": "esto_deberia_desaparecer"
+}

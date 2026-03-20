@@ -24,7 +24,7 @@ export const registerUserSchema = z.object({
   })
 });
 
-// Esquema específico para login (sin validaciones estrictas en password, solo que no esté vacío)
+// Esquema específico para login (sin más validaciones en password, solo que no esté vacío)
 export const loginUserSchema = z.object({
   body: z.object({
     email: userBaseSchema.shape.email,

@@ -9,8 +9,8 @@ const userBaseSchema = z.object({
   
   email: z.string()
     .email('Formato de email inválido')
-    .toLowerCase()
-    .trim(),
+    .trim()
+    .transform((val) => val.toLowerCase()), // Normalización
 });
 
 // Esquema específico para registro (Email + Password)
@@ -29,5 +29,18 @@ export const loginUserSchema = z.object({
   body: z.object({
     email: userBaseSchema.shape.email,
     password: z.string().min(1, 'La contraseña es requerida')
+  })
+});
+
+// Esquema específico para onboarding (Datos personales: Nombre, NIF y Teléfono)
+export const updateProfileSchema = z.object({
+  body: z.object({
+    name: userBaseSchema.shape.name,
+    lastName: z.string().min(2, 'El apellido debe tener al menos 2 caracteres').trim(),
+    nif: z.string()
+      .length(9, 'El NIF/CIF debe tener exactamente 9 caracteres')
+      .trim()
+      .transform((val) => val.toUpperCase()), // Normalización a mayúsculas
+    phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos').optional()
   })
 });

@@ -1,15 +1,4 @@
-### Prueba 1: Registro con errores (Debe devolver 400 Validation Error)
-POST http://localhost:3000/api/user/register
-Content-Type: application/json
-
-{
-  "email": "correo-invalido",
-  "password": "123"
-}
-
-###
-
-### Prueba 2: Registro con éxito (Debe devolver 200 OK y limpiar campos extra)
+### Prueba 1: Registro con éxito (Debe devolver 200 OK y limpiar campos extra)
 POST http://localhost:3000/api/user/register
 Content-Type: application/json
 
@@ -19,7 +8,25 @@ Content-Type: application/json
   "campo_hacker": "esto_deberia_desaparecer"
 }
 
-### Prueba 3: Login Correcto (Debe devolver el Token)
+### Prueba 1.1: Registro con errores (Debe devolver 400 Validation Error)
+POST http://localhost:3000/api/user/register
+Content-Type: application/json
+
+{
+  "email": "correo-invalido",
+  "password": "123"
+}
+
+### Prueba 1.2: Registro con email ya existente (409 Conflict)
+POST http://localhost:3000/api/user/register
+Content-Type: application/json
+
+{
+ "email": "TEST@USUARIO.COM",
+ "password": "Password123"
+}
+
+### Prueba 2: Login Correcto (Debe devolver el Token)
 POST http://localhost:3000/api/user/login
 Content-Type: application/json
 
@@ -28,12 +35,42 @@ Content-Type: application/json
   "password": "Password123"
 }
 
-### Prueba 4: Acceso denegado (Sin Token)
-GET http://localhost:3000/api/user/me
+### Prueba 2.1: Login con contraseña incorrecta (401 Unauthorized)
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
 
-###
+{
+  "email": "TEST@USUARIO.COM",
+  "password": "Password_FALSA_123"
+}
 
-### Prueba 5: Acceso permitido (Con Token)
+### Prueba 2.2: Login con email inexistente (401 Unauthorized)
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+  "email": "no-exististe-nunca@usuario.com",
+  "password": "Password123"
+}
+
+### Prueba 2.3: Login con email en minúsculas (200 OK)
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+ "email": "test@usuario.com",
+ "password": "Password123"
+}
+
+### Prueba 3: Acceso permitido (Con Token)
 # Importante: Copia el token que te dio el Login y pégalo después de "Bearer"
 GET http://localhost:3000/api/user/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRkNWMyODljMTViZGJmMzM3Y2M3MyIsImlhdCI6MTc3NDA1MDY0OCwiZXhwIjoxNzc0MTM3MDQ4fQ._MbTnMqgpifHXozG2qndTcW02o1caD7vCRuRUKBeMe4
+
+### Prueba 3.1: Acceso denegado (Sin Token)
+GET http://localhost:3000/api/user/me
+
+### Prueba 3.2: Acceso con Token corrupto (401 Unauthorized)
+GET http://localhost:3000/api/user/me
+Authorization: Bearer este-token-es-falso-y-no-tiene-puntos.ni-nada
+

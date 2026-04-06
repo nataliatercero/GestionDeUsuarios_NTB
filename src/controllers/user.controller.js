@@ -125,19 +125,36 @@ export const updateProfile = async (req, res, next) => {
 
 // GET PROFILE
 
-export const getProfile = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: `Perfil de ${req.user.fullName || 'usuario'}`,
-    user: {
-      id: req.user._id,
-      email: req.user.email,
-      fullName: req.user.fullName, // Virtuals
-      nif: req.user.nif,
-      role: req.user.role,
-      status: req.user.status
+// GET PROFILE (Punto 6 de la rúbrica)
+export const getProfile = async (req, res, next) => {
+  try {
+    // Buscamos al usuario por el ID que viene en el token
+    // .populate('company') busca el ID en la colección de Companies y trae el objeto entero
+    const user = await User.findById(req.user._id).populate('company');
+
+    if (!user) {
+      return next(AppError.notFound('Usuario'));
     }
-  });
+
+    res.status(200).json({
+      success: true,
+      message: `Perfil de ${user.fullName || 'usuario'}`,
+      data: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        lastName: user.lastName,
+        fullName: user.fullName, 
+        nif: user.nif,
+        role: user.role,
+        status: user.status,
+        // Aquí aparecerá el objeto de la empresa completo gracias al populate
+        company: user.company 
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // VERIFICACIÓN DE EMAIL

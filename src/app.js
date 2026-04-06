@@ -4,6 +4,7 @@ import { rateLimit } from 'express-rate-limit'
 import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
 import userRoutes from './routes/user.routes.js';
+import path from 'node:path';
 
 const app = express();
 
@@ -26,6 +27,10 @@ app.use(limiter);
 
 // Para que el servidor entienda JSON en el cuerpo de las peticiones
 app.use(express.json());
+
+// ARCHIVOS ESTÁTICOS
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // LIMPIEZA
 app.use(sanitizeBody); 

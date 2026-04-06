@@ -187,3 +187,55 @@ Authorization: Bearer {{token}}
 # Aquí compruebas que el campo 'company' ya no es null y el 'role' es correcto.
 GET http://localhost:3000/api/user/me
 Authorization: Bearer {{token}}
+
+### Prueba 10: Subida de Logo con éxito
+PATCH http://localhost:3000/api/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
+
+< ./logo.png
+--boundary--
+
+
+### Prueba 10.1: Error - Subir archivo que NO es imagen
+# Esto debería devolver un 400 Bad Request por el fileFilter de Multer.
+PATCH http://localhost:3000/api/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="logo"; filename="test.txt"
+Content-Type: text/plain
+
+Este es un archivo de texto falso.
+--boundary--
+
+
+### Prueba 10.2: Error - Subir sin archivo
+# Debería devolver el error 400 que pusimos en el controlador: "Por favor, selecciona una imagen".
+PATCH http://localhost:3000/api/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="campo_equivocado"
+
+datos basura
+--boundary--
+
+
+### Prueba 11: Verificar que el logo se guardó en la DB
+# En la respuesta de este GET, el campo 'company' (si has hecho el populate) 
+# debe tener el campo 'logo' con la ruta "/uploads/logo-..."
+GET http://localhost:3000/api/user/me
+Authorization: Bearer {{token}}
+
+
+### Prueba 12: Acceso a la imagen estática
+# Copia el nombre del archivo que te devuelva la Prueba 10 y pégalo aquí.
+# Si el navegador o el test te devuelve la imagen, el app.use(static) está perfecto.
+GET http://localhost:3000/uploads/logo-AQUI_EL_NOMBRE_QUE_TE_DE_EL_CONTROLADOR.png

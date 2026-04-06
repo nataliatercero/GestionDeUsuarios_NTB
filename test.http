@@ -1,4 +1,5 @@
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNkNzg2MDU5NWI2MDBmYmY1ZDRjNiIsImlhdCI6MTc3NTQ5MDk1MCwiZXhwIjoxNzc1NDk0NTUwfQ.28-h2SZImUGBqbUVIRxBVQpi0HAHTMwiBEIRoTkwSxs
+@token_usuario_2 = ey
 ### Prueba 1: Registro con éxito (Status: 201 Created)
 # Zod debe eliminar "campo_hacker" y normalizar el email a minúsculas
 POST http://localhost:3000/api/user/register
@@ -120,3 +121,69 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 { "code": "703551" }
+
+### Prueba 8: Crear Empresa (Como Admin/Owner)
+# El CIF no existe, por lo que crea la empresa y asigna al usuario como owner.
+PATCH http://localhost:3000/api/user/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Bildy Corp S.L.",
+  "cif": "B12345678",
+  "address": {
+    "street": "Calle de la Innovación",
+    "number": "42",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  },
+  "isFreelance": false
+}
+
+
+### Prueba 8.1: Unirse a Empresa Existente (Pasará a ser Guest)
+# IMPORTANTE: Para esta prueba necesitas el token de un SEGUNDO usuario verificado.
+# Al usar el mismo CIF "B12345678", este usuario se vinculará a la anterior y su rol será 'guest'.
+PATCH http://localhost:3000/api/user/company
+Content-Type: application/json
+Authorization: Bearer {{token_usuario_2}}
+
+{
+  "name": "Intento unirme a Bildy Corp",
+  "cif": "B12345678"
+}
+
+
+### Prueba 8.2: Registro como Autónomo (isFreelance: true)
+# El controlador debería ignorar el CIF enviado (o validarlo) y usar el NIF del usuario.
+PATCH http://localhost:3000/api/user/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Natalia Freelance",
+  "cif": "99999999X",
+  "isFreelance": true,
+  "address": {
+    "street": "Avenida del Trabajo",
+    "number": "7"
+  }
+}
+
+
+### Prueba 8.3: Error de Validación (CIF corto)
+PATCH http://localhost:3000/api/user/company
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Error Corp",
+  "cif": "123"
+}
+
+
+### Prueba 9: Ver Perfil Final (Verificar ID de Company y Rol)
+# Aquí compruebas que el campo 'company' ya no es null y el 'role' es correcto.
+GET http://localhost:3000/api/user/me
+Authorization: Bearer {{token}}

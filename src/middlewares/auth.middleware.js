@@ -39,3 +39,13 @@ export const isVerified = (req, res, next) => {
   }
   next(AppError.unauthorized('Acceso denegado. Email no verificado.', 'EMAIL_NOT_VERIFIED'));
 };
+
+export const hasProfile = (req, res, next) => {
+  // Verificamos que tenga los campos obligatorios del onboarding de usuario
+  if (req.user && req.user.name && req.user.nif) {
+    return next();
+  }
+  
+  // Si no los tiene, lanzamos un error
+  next(AppError.badRequest('Debes completar tus datos personales (Nombre y NIF) antes de gestionar una empresa.'));
+};

@@ -1,5 +1,6 @@
 import Company from '../models/Company.js';
 import User from '../models/User.js';
+import notificationService from '../services/notificationService.js';
 import { AppError } from '../utils/AppError.js';
 
 export const updateCompanyData = async (req, res, next) => {
@@ -43,6 +44,9 @@ export const updateCompanyData = async (req, res, next) => {
 
     // Buscamos el usuario actualizado para devolver el rol real en la respuesta
     const updatedUser = await User.findById(userId);
+
+    const eventName = isNew ? 'company:created' : 'company:joined';
+    notificationService.emit(eventName, { fullName: req.user.fullName, name: company.name, cif: company.cif });
 
     res.status(isNew ? 201 : 200).json({
       success: true,

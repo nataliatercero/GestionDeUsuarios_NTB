@@ -4,7 +4,7 @@ import { registerUserSchema, loginUserSchema, updateProfileSchema, verifyEmailSc
 import { updateCompanySchema } from '../validators/company.validator.js'; 
 import { register, login, getProfile, updateProfile,  verifyEmail } from '../controllers/user.controller.js';
 import { updateCompanyData } from '../controllers/company.controller.js';
-import { authMiddleware, isVerified } from '../middlewares/auth.middleware.js';
+import { authMiddleware, isVerified, hasProfile } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -23,8 +23,8 @@ router.put('/validation', authMiddleware, validate(verifyEmailSchema), verifyEma
 // Ruta para obtener el perfil propio
 router.get('/me', authMiddleware, getProfile);
 
-// Onboarding de empresa (Punto 4.2)
+// Onboarding de empresa
 // Requiere Token, estar verificado y pasar el validador de empresa
-router.patch('/company', authMiddleware, isVerified, validate(updateCompanySchema), updateCompanyData);
+router.patch('/company', authMiddleware, isVerified, hasProfile, validate(updateCompanySchema), updateCompanyData);
 
 export default router;

@@ -1,13 +1,13 @@
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNjYmI4ZDFiYjhkYTI1MzEzMGI4NCIsImlhdCI6MTc3NTQ4Nzk1MCwiZXhwIjoxNzc1NTc0MzUwfQ.BKX8MtqADgf-vtILOhU6zSBjLTfXE3zmgumWvvwCfag
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNkNzg2MDU5NWI2MDBmYmY1ZDRjNiIsImlhdCI6MTc3NTQ5MDk1MCwiZXhwIjoxNzc1NDk0NTUwfQ.28-h2SZImUGBqbUVIRxBVQpi0HAHTMwiBEIRoTkwSxs
 ### Prueba 1: Registro con éxito (Status: 201 Created)
 # Zod debe eliminar "campo_hacker" y normalizar el email a minúsculas
 POST http://localhost:3000/api/user/register
 Content-Type: application/json
 
 {
-  "email": "NATALIA_TEST@GMAIL.COM",
-  "password": "Password123",
-  "campo_hacker": "deberia_desaparecer"
+  "email": "BILDY_MASTER@TEST.COM",
+  "password": "Bildy2026!",
+  "campo_mal": "Hola no existo"
 }
 
 ### Prueba 1.1: Registro con errores (400 Validation Error)
@@ -33,8 +33,8 @@ POST http://localhost:3000/api/user/login
 Content-Type: application/json
 
 {
-  "email": "natalia_test@gmail.com",
-  "password": "Password123"
+  "email": "BILDY_MASTER@TEST.COM",
+  "password": "Bildy2026!"
 }
 
 ### Prueba 2.1: Login con contraseña incorrecta (401 Unauthorized)
@@ -57,10 +57,10 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "name": "Natalia",
-  "lastName": "Tercero",
-  "nif": "12345678z",
-  "phone": "600112233" 
+  "name": "profe",
+  "lastName": "bildy",
+  "nif": "99999999x", 
+  "phone": "Soy extra, 661894653"
 }
 
 ### Prueba 4.1: Onboarding con errores (Falta lastName)
@@ -113,3 +113,10 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 { "code": "333333" }
+
+### Prueba 7.3: Validación - Éxito (Poner el de Mongo Atlas)
+PUT http://localhost:3000/api/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "code": "703551" }

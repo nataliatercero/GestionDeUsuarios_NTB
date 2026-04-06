@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import notificationService from '../services/notification.service.js';
 
 
 // REGISTRO
@@ -30,6 +31,8 @@ export const register = async (req, res, next) => {
 
     // Generamos un token temporal para que pueda usar la ruta de validación
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    notificationService.emit('user:registered', newUser);
 
     res.status(201).json({
       success: true,
@@ -130,6 +133,7 @@ export const getProfile = async (req, res) => {
       id: req.user._id,
       email: req.user.email,
       fullName: req.user.fullName, // Virtuals
+      nif: req.user.nif,
       role: req.user.role,
       status: req.user.status
     }
@@ -181,6 +185,8 @@ export const verifyEmail = async (req, res, next) => {
     user.verificationAttempts = undefined;
     
     await user.save();
+
+    notificationService.emit('user:verified', user);
 
     res.status(200).json({
       success: true,

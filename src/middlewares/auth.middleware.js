@@ -15,7 +15,7 @@ export const authMiddleware = async (req, res, next) => {
     // Verificar el token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 4Buscar al usuario en la BD (usando el id del payload del token)
+    // Buscar al usuario en la BD (usando el id del payload del token)
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -31,4 +31,11 @@ export const authMiddleware = async (req, res, next) => {
     // Si el token ha expirado o es falso, jwt.verify lanza un error
     return next(new AppError('Token inválido o expirado', 401, 'INVALID_TOKEN'));
   }
+};
+
+export const isVerified = (req, res, next) => {
+  if (req.user && req.user.status === 'verified') {
+    return next();
+  }
+  next(AppError.unauthorized('Acceso denegado. Email no verificado.', 'EMAIL_NOT_VERIFIED'));
 };

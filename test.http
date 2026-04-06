@@ -1,11 +1,13 @@
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNjYmI4ZDFiYjhkYTI1MzEzMGI4NCIsImlhdCI6MTc3NTQ4Nzk1MCwiZXhwIjoxNzc1NTc0MzUwfQ.BKX8MtqADgf-vtILOhU6zSBjLTfXE3zmgumWvvwCfag
 ### Prueba 1: Registro con éxito (Status: 201 Created)
+# Zod debe eliminar "campo_hacker" y normalizar el email a minúsculas
 POST http://localhost:3000/api/user/register
 Content-Type: application/json
 
 {
-  "email": "NUEVO_USUARIO@TEST.COM",
+  "email": "NATALIA_TEST@GMAIL.COM",
   "password": "Password123",
-  "campo_hacker": "esto_deberia_desaparecer"
+  "campo_hacker": "deberia_desaparecer"
 }
 
 ### Prueba 1.1: Registro con errores (400 Validation Error)
@@ -31,7 +33,7 @@ POST http://localhost:3000/api/user/login
 Content-Type: application/json
 
 {
-  "email": "nuevo_usuario@test.com",
+  "email": "natalia_test@gmail.com",
   "password": "Password123"
 }
 
@@ -46,26 +48,25 @@ Content-Type: application/json
 
 ### Prueba 3: Acceso al perfil ANTES del Onboarding (Campos vacíos)
 GET http://localhost:3000/api/user/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRlN2ZjNDFkMzJkM2VlMDkyNzI0YSIsImlhdCI6MTc3NDA1MzQ3OCwiZXhwIjoxNzc0MTM5ODc4fQ.PcuAGkPgM24ecQ6s2c61Yk5lFin96CsUAr7XTrcBLWI
+Authorization: Bearer {{token}}
 
 ### Prueba 4: Onboarding con éxito
 # Nota: Enviamos NIF en minúsculas para probar el .transform() de Zod
 PUT http://localhost:3000/api/user/register
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRlN2ZjNDFkMzJkM2VlMDkyNzI0YSIsImlhdCI6MTc3NDA1MzQ3OCwiZXhwIjoxNzc0MTM5ODc4fQ.PcuAGkPgM24ecQ6s2c61Yk5lFin96CsUAr7XTrcBLWI
+Authorization: Bearer {{token}}
 
 {
   "name": "Natalia",
   "lastName": "Tercero",
   "nif": "12345678z",
-  "phone": "600112233"
+  "phone": "600112233" 
 }
 
 ### Prueba 4.1: Onboarding con errores (Falta lastName)
 PUT http://localhost:3000/api/user/register
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRlN2ZjNDFkMzJkM2VlMDkyNzI0YSIsImlhdCI6MTc3NDA1MzQ3OCwiZXhwIjoxNzc0MTM5ODc4fQ.PcuAGkPgM24ecQ6s2c61Yk5lFin96CsUAr7XTrcBLWI
-
+Authorization: Bearer {{token}}
 
 {
   "name": "Natalia",
@@ -75,7 +76,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRlN2ZjN
 ### Prueba 5: Ver Perfil TRAS el Onboarding
 # Debería aparecer fullName: "Natalia Tercero" y el NIF en mayúsculas
 GET http://localhost:3000/api/user/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YmRlN2ZjNDFkMzJkM2VlMDkyNzI0YSIsImlhdCI6MTc3NDA1MzQ3OCwiZXhwIjoxNzc0MTM5ODc4fQ.PcuAGkPgM24ecQ6s2c61Yk5lFin96CsUAr7XTrcBLWI
+Authorization: Bearer {{token}}
 
 ### Prueba 6: Acceso denegado (Sin Token)
 GET http://localhost:3000/api/user/me
@@ -83,3 +84,32 @@ GET http://localhost:3000/api/user/me
 ### Prueba 6.1: Acceso con Token corrupto (401 Unauthorized)
 GET http://localhost:3000/api/user/me
 Authorization: Bearer este-token-es-falso.no-pasa-la-puerta
+
+### Prueba 7: Validación - Intento fallido 1 (Debe dar 400)
+PUT http://localhost:3000/api/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "code": "000000" }
+
+### Prueba 7.2: Validación - Intento fallido 2 (Debe dar 400)
+PUT http://localhost:3000/api/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "code": "111111" }
+
+### Prueba 7.3: Validación - Intento fallido 3
+PUT http://localhost:3000/api/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "code": "222222" }
+
+### Prueba 7.4: Validación - BLOQUEO (Debe dar 429 Too Many Requests)
+# Al ser el 4º intento fallido, el controlador debe decir que no quedan intentos.
+PUT http://localhost:3000/api/user/validation
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "code": "333333" }

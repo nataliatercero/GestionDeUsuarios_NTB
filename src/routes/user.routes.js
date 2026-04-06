@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
-import { registerUserSchema, loginUserSchema, updateProfileSchema } from '../validators/user.validator.js'; 
-import { register, login, getProfile, updateProfile } from '../controllers/user.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
+import { registerUserSchema, loginUserSchema, updateProfileSchema, verifyEmailSchema } from '../validators/user.validator.js'; 
+import { register, login, getProfile, updateProfile,  verifyEmail } from '../controllers/user.controller.js';
+import { authMiddleware, isVerified } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -13,7 +13,10 @@ router.post('/login', validate(loginUserSchema), login);
 // Rutas protegidas (requieren token)
 
 // Datos personales (Onboarding)
-router.put('/register', authMiddleware, validate(updateProfileSchema), updateProfile);
+router.put('/register', authMiddleware, isVerified, validate(updateProfileSchema), updateProfile);
+
+// Validación del correo electrónico mediante código de verificación
+router.put('/validation', authMiddleware, validate(verifyEmailSchema), verifyEmail);
 
 // Ruta para obtener el perfil propio
 router.get('/me', authMiddleware, getProfile);

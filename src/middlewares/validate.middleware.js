@@ -10,9 +10,8 @@ export const validate = (schema) => (req, res, next) => {
       params: req.params
     });
     // Sobreescribimos con los datos ya validados (Zod elimina campos extra)
-    // ?? es para mantener los datos originales si el esquema de Zod no define esa propiedad
-    req.body = validated.body ?? req.body;
-    req.params = validated.params ?? req.params;
+    if (validated.body) req.body = validated.body;
+    if (validated.params) req.params = validated.params;
     // req.query = validated.query ?? req.query; (ahora req.query es solo de lectura, rompe cosas si lo intentas setear)
     next(); // Si todo es correcto, pasamos al siguiente middleware
   } catch (error) {

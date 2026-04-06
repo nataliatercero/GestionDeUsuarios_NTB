@@ -16,7 +16,7 @@ export const register = async (req, res, next) => {
     }
 
     // Generar código de 6 dígitos
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationCode = Math.random().toString().substring(2, 8);
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -58,7 +58,7 @@ export const login = async (req, res, next) => {
     // Si no existe o la contraseña no coincide, lanzamos error genérico
     if (!user || !(await bcrypt.compare(password, user.password))) {
       // Usamos el 401 (No autorizado) para fallos de credenciales
-      return next(new AppError('Email o contraseña incorrectos', 401, 'INVALID_CREDENTIALS'));
+      return next(AppError.unauthorized('Email o contraseña incorrectos', 'INVALID_CREDENTIALS'));
     }
 
     // Generar el Token (JWT)
@@ -96,11 +96,11 @@ export const updateProfile = async (req, res, next) => {
     const userUpdated = await User.findByIdAndUpdate(
       userId,
       req.body, 
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!userUpdated) {
-      return next(new AppError('Usuario no encontrado', 404));
+      return next(AppError.notFound('Usuario'));
     }
 
     res.status(200).json({
@@ -134,4 +134,60 @@ export const getProfile = async (req, res) => {
       status: req.user.status
     }
   });
+};
+
+// VERIFICACIÓN DE EMAIL
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    
+    // Buscamos al usuario de nuevo para traer los campos con select: false
+    const user = await User.findById(req.user._id).select('+verificationCode +verificationAttempts');
+
+    // Comprobar si el usuario existe
+    if (!user) {
+      return next(AppError.notFound('Usuario'));
+    }
+
+    // Comprobar si ya está verificado
+    if (user.status === 'verified') {
+      return next(AppError.badRequest('Este email ya ha sido verificado anteriormente'));
+    }
+
+    // Control de intentos
+    if (user.verificationAttempts <= 0) {
+      return next(AppError.tooManyRequests('Has agotado los 3 intentos permitidos.'));
+    }
+
+    // Comprobar el código
+    if (user.verificationCode !== code) {
+      // Decrementamos intentos en la DB
+      user.verificationAttempts -= 1;
+      await user.save();
+
+      // Error 
+      return next(AppError.badRequest(
+        `Código incorrecto. Te quedan ${user.verificationAttempts} intentos.`,
+        'INVALID_VERIFICATION_CODE'
+      ));
+    }
+
+    // Si hay éxito, modificar status a verified y devolver ACK
+    user.status = 'verified';
+    
+    // Limpiar campos temporales
+    user.verificationCode = undefined;
+    user.verificationAttempts = undefined;
+    
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Email verificado correctamente. Ya puedes continuar con el onboarding.'
+    });
+
+  } catch (error) {
+    next(error); 
+  }
 };

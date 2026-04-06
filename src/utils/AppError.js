@@ -29,6 +29,21 @@ export class AppError extends Error {
   static conflict(message = 'El recurso ya existe', code = 'CONFLICT') {
     return new AppError(message, 409, code);
   }
+
+  // Para cuando el código de verificación es mal o falta algo
+  static badRequest(message = 'Solicitud inválida', code = 'BAD_REQUEST') {
+    return new AppError(message, 400, code);
+  }
+
+  // Para fallos de login o tokens
+  static unauthorized(message = 'No autorizado', code = 'UNAUTHORIZED') {
+    return new AppError(message, 401, code);
+  }
+
+  // Para demasiadas peticiones
+  static tooManyRequests(message = 'Demasiadas peticiones', code = 'RATE_LIMIT') {
+    return new AppError(message, 429, code);
+  }
 }
 
 export default AppError;

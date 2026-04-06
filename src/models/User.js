@@ -41,7 +41,8 @@ const userSchema = new Schema(
       index: true // Index 
     },
     verificationCode: {
-      type: String
+      type: String,
+      select: false
     },
     verificationAttempts: {
       type: Number,

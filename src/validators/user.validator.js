@@ -44,3 +44,11 @@ export const updateProfileSchema = z.object({
     phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos').optional()
   })
 });
+
+// Esquema para validar el código de verificación
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    code: z.string()
+      .length(6, 'El código debe tener exactamente 6 dígitos')
+  })
+});

@@ -10,17 +10,19 @@ export const updateCompanyData = async (req, res, next) => {
 
     // Lógica para Autónomos
     if (isFreelance) {
-      cif = req.user.nif; // El CIF es su NIF
-      name = `${req.user.name} ${req.user.lastName}`; // Nombre de empresa = Nombre real
-      // La dirección se mantiene la que envíe o la del usuario
+      cif = req.user.nif; 
+      name = req.user.fullName;
+      // Si no envían dirección en el body, usamos la que ya tiene el usuario
+      address = address || req.user.address; 
     }
 
     // Buscar si la empresa ya existe
     let company = await Company.findOne({ cif });
     let isNew = false;
+    let finalRole = 'admin'; // Por defecto, el que llega aquí suele ser admin
 
     if (!company) {
-      // CREAR: El usuario es el owner (será admin)
+      // CASO A: CREAR EMPRESA
       company = await Company.create({
         name,
         cif,
@@ -29,24 +31,31 @@ export const updateCompanyData = async (req, res, next) => {
         owner: userId
       });
       isNew = true;
-
-      // Vincular al usuario (mantiene rol admin por defecto)
-      await User.findByIdAndUpdate(userId, { company: company._id });
     } else {
-      // UNIRSE: El usuario se vincula a una existente
+      // CASO B: UNIRSE A EMPRESA EXISTENTE
+      // Solo es admin si ya era el owner de esa empresa
       const isOwner = company.owner.toString() === userId.toString();
-      
-      await User.findByIdAndUpdate(userId, { 
-        company: company._id,
-        role: isOwner ? 'admin' : 'guest' // Si no es el dueño, pasa a ser guest
-      });
+      finalRole = isOwner ? 'admin' : 'guest';
     }
 
-    // Buscamos el usuario actualizado para devolver el rol real en la respuesta
-    const updatedUser = await User.findById(userId);
+    // Vincular usuario y actualizar rol en una sola operación
+    // { new: true } nos devuelve el usuario ya actualizado
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { 
+        company: company._id, 
+        role: finalRole 
+      }, 
+      { new: true, runValidators: true }
+    );
 
+    // Eventos
     const eventName = isNew ? 'company:created' : 'company:joined';
-    notificationService.emit(eventName, { fullName: req.user.fullName, name: company.name, cif: company.cif });
+    notificationService.emit(eventName, { 
+      fullName: req.user.fullName, 
+      name: company.name, 
+      cif: company.cif 
+    });
 
     res.status(isNew ? 201 : 200).json({
       success: true,

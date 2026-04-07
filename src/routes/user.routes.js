@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
 import { registerUserSchema, loginUserSchema, updateProfileSchema, verifyEmailSchema, inviteUserSchema, changePasswordSchema } from '../validators/user.validator.js';
 import { updateCompanySchema } from '../validators/company.validator.js'; 
-import { register, login, getProfile, updateProfile,  verifyEmail, uploadLogo, deleteUser, getTrash, inviteUser, changePassword, refresh, logout } from '../controllers/user.controller.js';
+import { register, login, getProfile, updateProfile,  verifyEmail, uploadLogo, deleteUser, deleteUserByAdmin, getTrash, inviteUser, changePassword, refresh, logout } from '../controllers/user.controller.js';
 import { updateCompanyData } from '../controllers/company.controller.js';
 import { authMiddleware, isVerified, hasProfile } from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/upload.middleware.js';
@@ -48,6 +48,9 @@ router.put('/password', authMiddleware, isVerified, validate(changePasswordSchem
 
 // Eliminar usuario
 router.delete('/', authMiddleware, isVerified, deleteUser);
+
+// Borrar a un usuario específico (Solo Admins)
+router.delete('/:id', authMiddleware, isVerified, authorize('admin'), deleteUserByAdmin);
 
 // Rutas de gestión de sesión
 

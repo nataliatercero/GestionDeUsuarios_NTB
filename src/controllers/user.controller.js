@@ -303,6 +303,50 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
+// DELETE (para admins)
+
+export const deleteUserByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params; // ID del usuario a borrar
+    const { soft } = req.query;
+    const adminCompanyId = req.user.company; // Empresa del admin que ejecuta
+
+    // Buscamos al usuario que queremos borrar
+    const userToDelete = await User.findById(id);
+
+    if (!userToDelete) {
+      return next(AppError.notFound('El usuario que intentas borrar no existe'));
+    }
+
+    // SEGURIDAD: Verificar que pertenecen a la misma empresa
+    if (userToDelete.company.toString() !== adminCompanyId.toString()) {
+      return next(AppError.forbidden('No puedes borrar a un usuario de otra empresa'));
+    }
+
+    // Ejecutar el borrado
+    let deletedUser;
+    if (soft === 'true') {
+      deletedUser = await User.softDeleteById(id, req.user._id.toString());
+    } else {
+      deletedUser = await User.hardDelete(id);
+    }
+
+    notificationService.emit('user:deleted_by_admin', {
+      adminEmail: req.user.email,
+      targetEmail: userToDelete.email,
+      type: soft === 'true' ? 'soft' : 'hard'
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Usuario ${userToDelete.email} eliminado correctamente por el administrador`,
+      data: { id: userToDelete._id }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET TRASH (Papelera de usuarios para admins)
 export const getTrash = async (req, res, next) => {
   try {

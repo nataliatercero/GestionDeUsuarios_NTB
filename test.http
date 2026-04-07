@@ -1,364 +1,231 @@
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNkNzg2MDU5NWI2MDBmYmY1ZDRjNiIsImlhdCI6MTc3NTQ5MDk1MCwiZXhwIjoxNzc1NDk0NTUwfQ.28-h2SZImUGBqbUVIRxBVQpi0HAHTMwiBEIRoTkwSxs
-@token_usuario_2 = ey
-@refreshToken_obtenido_en_login = eyH
-### Prueba 1: Registro con éxito (Status: 201 Created)
-# Zod debe eliminar "campo_hacker" y normalizar el email a minúsculas
-POST http://localhost:3000/api/user/register
+### --- CONFIGURACIÓN DE VARIABLES ---
+@baseUrl = http://localhost:3000/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDU2OGM4YTNkOWZlZGI1ZmRjNDU0YSIsImlhdCI6MTc3NTU5Mzc3OCwiZXhwIjoxNzc1NTk1NTc4fQ.6x1bfkJ96cmZRy_5BtDtAzCg_QEzHIx-_nslAA-w2GA
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDU2OGM4YTNkOWZlZGI1ZmRjNDU0YSIsImlhdCI6MTc3NTU5Mzc3OCwiZXhwIjoxNzc2MTk4NTc4fQ.KwouiLCVsoXEd8fG1Q8_TDQm9IhjoSdWk5qV68I3t8Q
+
+# Nota: Copia aquí un token de un segundo usuario para las pruebas de RBAC (Roles)
+@token_usuario_guest = ey... 
+
+# Nota: Este código cámbialo por el que veas en tu consola/Atlas tras registrarte
+@verificationCode = 367827
+
+### ============================================================
+### SECCIÓN 1: REGISTRO Y AUTENTICACIÓN (Puntos 1, 2, 3 de Rúbrica)
+### ============================================================
+
+### Prueba 1: Registro con éxito (201 Created)
+# @name register
+POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
-  "email": "BILDY_MASTER@TEST.COM",
+  "email": "guest_test@test.com",
   "password": "Bildy2026!",
-  "campo_mal": "Hola no existo"
+  "extra_field": "Hacker intentando inyectar basura" 
 }
 
-### Prueba 1.1: Registro con errores (400 Validation Error)
-POST http://localhost:3000/api/user/register
+### Prueba 2: Registro con errores (400 Bad Request)
+# Password corta y email inválido
+POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
-  "email": "correo-invalido",
+  "email": "no-es-email",
   "password": "123"
 }
 
-### Prueba 1.2: Registro con email ya existente (409 Conflict)
-POST http://localhost:3000/api/user/register
+### Prueba 3: Registro Duplicado (409 Conflict)
+POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
- "email": "NUEVO_USUARIO@TEST.COM",
- "password": "Password123"
+  "email": "bildy_master@test.com",
+  "password": "CualquierPassword123!"
 }
 
-### Prueba 2: Login Correcto (Debe devolver el Token)
-POST http://localhost:3000/api/user/login
+### Prueba 4: Login Correcto (200 OK)
+# @name login
+POST {{baseUrl}}/user/login
 Content-Type: application/json
 
 {
-  "email": "BILDY_MASTER@TEST.COM",
+  "email": "guest_test@test.com",
   "password": "Bildy2026!"
 }
 
-### Prueba 2.1: Login con contraseña incorrecta (401 Unauthorized)
-POST http://localhost:3000/api/user/login
+### Prueba 5: Login Fallido (401 Unauthorized)
+POST {{baseUrl}}/user/login
 Content-Type: application/json
 
 {
-  "email": "nuevo_usuario@test.com",
-  "password": "Password_FALSA_123"
+  "email": "bildy_master@test.com",
+  "password": "Password_Incorrecta"
 }
 
-### Prueba 3: Acceso al perfil ANTES del Onboarding (Campos vacíos)
-GET http://localhost:3000/api/user/me
-Authorization: Bearer {{token}}
+### ============================================================
+### SECCIÓN 2: VALIDACIÓN DE EMAIL (Punto 2 de Rúbrica)
+### ============================================================
 
-### Prueba 4: Onboarding con éxito
-# Nota: Enviamos NIF en minúsculas para probar el .transform() de Zod
-PUT http://localhost:3000/api/user/register
+### Prueba 6: Validación - Código incorrecto (Intento 1)
+PUT {{baseUrl}}/user/validation
+Authorization: Bearer {{token}}
 Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-  "name": "profe",
-  "lastName": "bildy",
-  "nif": "99999999x", 
-  "phone": "Soy extra, 661894653"
-}
-
-### Prueba 4.1: Onboarding con errores (Falta lastName)
-PUT http://localhost:3000/api/user/register
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-  "name": "Natalia",
-  "nif": "12345678Z"
-}
-
-### Prueba 5: Ver Perfil TRAS el Onboarding
-# Debería aparecer fullName: "Natalia Tercero" y el NIF en mayúsculas
-GET http://localhost:3000/api/user/me
-Authorization: Bearer {{token}}
-
-### Prueba 6: Acceso denegado (Sin Token)
-GET http://localhost:3000/api/user/me
-
-### Prueba 6.1: Acceso con Token corrupto (401 Unauthorized)
-GET http://localhost:3000/api/user/me
-Authorization: Bearer este-token-es-falso.no-pasa-la-puerta
-
-### Prueba 7: Validación - Intento fallido 1 (Debe dar 400)
-PUT http://localhost:3000/api/user/validation
-Content-Type: application/json
-Authorization: Bearer {{token}}
 
 { "code": "000000" }
 
-### Prueba 7.2: Validación - Intento fallido 2 (Debe dar 400)
-PUT http://localhost:3000/api/user/validation
-Content-Type: application/json
+### Prueba 7: Validación - Código incorrecto (Intento 2)
+PUT {{baseUrl}}/user/validation
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 { "code": "111111" }
 
-### Prueba 7.3: Validación - Intento fallido 3
-PUT http://localhost:3000/api/user/validation
-Content-Type: application/json
+### Prueba 8: Validación - Código incorrecto (Intento 3)
+PUT {{baseUrl}}/user/validation
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 { "code": "222222" }
 
-### Prueba 7.4: Validación - BLOQUEO (Debe dar 429 Too Many Requests)
-# Al ser el 4º intento fallido, el controlador debe decir que no quedan intentos.
-PUT http://localhost:3000/api/user/validation
-Content-Type: application/json
+### Prueba 9: Validación - BLOQUEO (429 Too Many Requests)
+# Al ser el 4º intento, debe dar error de intentos agotados
+PUT {{baseUrl}}/user/validation
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 { "code": "333333" }
 
-### Prueba 7.3: Validación - Éxito (Poner el de Mongo Atlas)
-PUT http://localhost:3000/api/user/validation
-Content-Type: application/json
+### Prueba 10: Validación - Éxito (200 OK)
+# Usa el código real de tu DB tras resetear los intentos en Atlas si es necesario
+PUT {{baseUrl}}/user/validation
 Authorization: Bearer {{token}}
-
-{ "code": "703551" }
-
-### Prueba 8: Crear Empresa (Como Admin/Owner)
-# El CIF no existe, por lo que crea la empresa y asigna al usuario como owner.
-PATCH http://localhost:3000/api/user/company
 Content-Type: application/json
+
+{ "code": "{{verificationCode}}" }
+
+### ============================================================
+### SECCIÓN 3: ONBOARDING PERSONAL Y EMPRESA (Punto 4 de Rúbrica)
+### ============================================================
+
+### Prueba 11: Onboarding Personal - Éxito
+# Probamos transformación de NIF a mayúsculas
+PUT {{baseUrl}}/user/register
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 {
-  "name": "Bildy Corp S.L.",
-  "cif": "B12345678",
+  "name": "Guest",
+  "lastName": "Session",
+  "nif": "12345698z"
+}
+
+### Prueba 12: Onboarding Empresa - Crear nueva (Admin/Owner)
+PATCH {{baseUrl}}/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isFreelance": false,
+  "name": "Test Corp S.L.",
+  "cif": "B12345679",
   "address": {
     "street": "Calle de la Innovación",
     "number": "42",
     "postal": "28001",
     "city": "Madrid",
     "province": "Madrid"
-  },
-  "isFreelance": false
-}
-
-
-### Prueba 8.1: Unirse a Empresa Existente (Pasará a ser Guest)
-# IMPORTANTE: Para esta prueba necesitas el token de un SEGUNDO usuario verificado.
-# Al usar el mismo CIF "B12345678", este usuario se vinculará a la anterior y su rol será 'guest'.
-PATCH http://localhost:3000/api/user/company
-Content-Type: application/json
-Authorization: Bearer {{token_usuario_2}}
-
-{
-  "name": "Intento unirme a Bildy Corp",
-  "cif": "B12345678"
-}
-
-
-### Prueba 8.2: Registro como Autónomo (isFreelance: true)
-# El controlador debería ignorar el CIF enviado (o validarlo) y usar el NIF del usuario.
-PATCH http://localhost:3000/api/user/company
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-  "name": "Natalia Freelance",
-  "cif": "99999999X",
-  "isFreelance": true,
-  "address": {
-    "street": "Avenida del Trabajo",
-    "number": "7"
   }
 }
 
-
-### Prueba 8.3: Error de Validación (CIF corto)
-PATCH http://localhost:3000/api/user/company
-Content-Type: application/json
+### Prueba 13: Onboarding Empresa - Registro Autónomo (Bonus Union)
+# El CIF será forzado por el controlador a tu NIF
+PATCH {{baseUrl}}/user/company
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 {
-  "name": "Error Corp",
-  "cif": "123"
+  "isFreelance": true
 }
 
+### Prueba 14: Onboarding Empresa - Unirse a existente (Pasará a Guest)
+# Requiere token de otro usuario verificado
+PATCH {{baseUrl}}/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
 
-### Prueba 9: Ver Perfil Final (Verificar ID de Company y Rol)
-# Aquí compruebas que el campo 'company' ya no es null y el 'role' es correcto.
-GET http://localhost:3000/api/user/me
+{
+  "isFreelance": false,
+  "cif": "B12345678",
+  "name": "Bildy Corp S.L.",
+  "address": {
+    "street": "Calle de la Innovación",
+    "number": "42",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+### ============================================================
+### SECCIÓN 4: GESTIÓN DE PERFIL Y LOGO (Puntos 5, 6 de Rúbrica)
+### ============================================================
+
+### Prueba 15: Ver Perfil Completo (Populate + Virtuals)
+GET {{baseUrl}}/user/me
 Authorization: Bearer {{token}}
 
-### Prueba 10: Subida de Logo con éxito 
-PATCH http://localhost:3000/api/user/logo
+### Prueba 16: Subida de Logo (Multipart)
+PATCH {{baseUrl}}/user/logo
 Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Disposition: form-data; name="logo"; filename="mologo.png"
 Content-Type: image/png
 
-< ./logo.png
+< ./mologo.png
 --boundary--
 
+### Prueba 17: Acceso a Imagen Estática
+# Cambia el nombre por el que devuelva la prueba anterior
+GET http://localhost:3000/uploads/logo-69d55f98e5a1acfd289502db-1775591587143-720264085.png
 
-### Prueba 10.1: Error - Subir archivo que NO es imagen
-# Esto debería devolver un 400 Bad Request por el fileFilter de Multer.
-PATCH http://localhost:3000/api/user/logo
+### ============================================================
+### SECCIÓN 5: ADMINISTRACIÓN E INVITACIONES (Punto 10 de Rúbrica)
+### ============================================================
+
+### Prueba 18: Invitar compañero (Admin)
+POST {{baseUrl}}/user/invite
 Authorization: Bearer {{token}}
-Content-Type: multipart/form-data; boundary=boundary
-
---boundary
-Content-Disposition: form-data; name="logo"; filename="test.txt"
-Content-Type: text/plain
-
-Este es un archivo de texto falso.
---boundary--
-
-
-### Prueba 10.2: Error - Subir sin archivo
-# Debería devolver el error 400 que pusimos en el controlador
-PATCH http://localhost:3000/api/user/logo
-Authorization: Bearer {{token}}
-Content-Type: multipart/form-data; boundary=boundary
-
---boundary
-Content-Disposition: form-data; name="campo_equivocado"
-
-datos basura
---boundary--
-
-
-### Prueba 11: Verificar que el logo se guardó en la DB
-# En la respuesta de este GET, el campo 'company' 
-# debe tener el campo 'logo' con la ruta "/uploads/logo-..."
-GET http://localhost:3000/api/user/me
-Authorization: Bearer {{token}}
-
-
-### Prueba 12: Acceso a la imagen estática
-# Copia el nombre del archivo que te devuelva la Prueba 10 y pégalo aquí.
-# Si el navegador o el test te devuelve la imagen, el app.use(static) está perfecto.
-GET http://localhost:3000/uploads/logo-AQUI_EL_NOMBRE_QUE_TE_DE_EL_CONTROLADOR.png
-
-### Prueba 13: Borrado Lógico (Soft Delete)
-# Debe devolver success: true y un mensaje confirmando el borrado lógico.
-# En la consola de Node deberías ver: [EVENT] Usuario Eliminado [Borrado Lógico]: bildy_master@test.com
-DELETE http://localhost:3000/api/user?soft=true
-Authorization: Bearer {{token}}
-
-
-### Prueba 14: Comprobación de persistencia tras Soft Delete
-# Si intentas hacer un GET al perfil ahora, el controlador debería dar un 404 (Not Found)
-GET http://localhost:3000/api/user/me
-Authorization: Bearer {{token}}
-
-
-### Prueba 15: Comprobación de Login post-borrado
-# Debería dar 401 Unauthorized. Aunque el usuario esté en la DB, el findOne() no lo encontrará.
-POST http://localhost:3000/api/user/login
 Content-Type: application/json
 
 {
-  "email": "BILDY_MASTER@TEST.COM",
-  "password": "Bildy2026!"
-}
-
-
-### Prueba 16: Borrado Físico (Hard Delete)
-# NOTA: Para probar esto necesitas registrar un usuario nuevo o cambiar 'deleted' a false en Atlas.
-# Elimina el registro definitivamente de la colección.
-DELETE http://localhost:3000/api/user?soft=false
-Authorization: Bearer {{token}}
-
-### Prueba 17: Sanitización NoSQL Injection
-# Si envías un operador de Mongo en el body, el middleware sanitizeBody debería limpiarlo.
-# El email debería procesarse como un string literal, no como un objeto de comparación.
-POST http://localhost:3000/api/user/login
-Content-Type: application/json
-
-{
-  "email": { "$gt": "" },
-  "password": "CualquierPassword"
-}
-
-### Prueba 18: Ver Papelera - Caso Éxito (Siendo Admin)
-# Después de haber hecho la Prueba 13 (Soft Delete), este endpoint 
-# debería devolver una lista con ese usuario borrado.
-GET http://localhost:3000/api/user/trash
-Authorization: Bearer {{token}}
-
-
-### Prueba 19: Ver Papelera - Error (Siendo Guest)
-# Si usas el token del usuario 2 (que se unió a una empresa y es guest),
-# el controlador debería devolver 403 Forbidden.
-GET http://localhost:3000/api/user/trash
-Authorization: Bearer {{token_usuario_2}}
-
-
-### Prueba 20: Ver Papelera - Vacía
-# Si no hay usuarios borrados en esa compañía, debería devolver un array vacío [] 
-# con success: true, no un error.
-GET http://localhost:3000/api/user/trash
-Authorization: Bearer {{token}}
-
-### Prueba 21: Invitar a un compañero (Éxito - Siendo Admin)
-# Debe crear el usuario con rol 'guest', misma company y status 'verified'.
-# Verifica la consola de Node para ver el evento: [EVENT] ✉️ Profe Bildy ha invitado a...
-POST http://localhost:3000/api/user/invite
-Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-  "email": "companero_nuevo@test.com",
-  "name": "Juan",
-  "lastName": "Invitado",
+  "email": "companero2@test.com",
+  "name": "Juan2",
+  "lastName": "Invitado2",
   "nif": "11223344K"
 }
 
-
-### Prueba 22: Error al invitar (Siendo Guest)
-# El usuario_2 es guest, por lo que el authorize('admin') debe devolver 403 Forbidden.
-POST http://localhost:3000/api/user/invite
+### Prueba 19: Error al invitar (Guest)
+POST {{baseUrl}}/user/invite
+Authorization: Bearer {{token}}
 Content-Type: application/json
-Authorization: Bearer {{token_usuario_2}}
 
 {
-  "email": "otro_intento@test.com",
-  "name": "Intento",
-  "lastName": "Fallido",
+  "email": "error@test.com",
+  "name": "Error",
+  "lastName": "User",
   "nif": "00000000T"
 }
 
+### ============================================================
+### SECCIÓN 6: SEGURIDAD Y BORRADO (Puntos 8, 9 de Rúbrica)
+### ============================================================
 
-### Prueba 23: Login del usuario invitado
-# Probamos que el invitado puede entrar con la contraseña temporal.
-POST http://localhost:3000/api/user/login
-Content-Type: application/json
-
-{
-  "email": "companero_nuevo@test.com",
-  "password": "Temporal123!"
-}
-
-
-### Prueba 24: Error al invitar usuario ya existente
-# Debe devolver un 409 Conflict.
-POST http://localhost:3000/api/user/invite
-Content-Type: application/json
+### Prueba 20: Cambio de Password - Éxito
+PUT {{baseUrl}}/user/password
 Authorization: Bearer {{token}}
-
-{
-  "email": "BILDY_MASTER@TEST.COM",
-  "name": "Duplicado",
-  "lastName": "Test",
-  "nif": "99999999X"
-}
-
-### Prueba 25: Cambio de contraseña con éxito
-PUT http://localhost:3000/api/user/password
 Content-Type: application/json
-Authorization: Bearer {{token}}
 
 {
   "currentPassword": "Bildy2026!",
@@ -366,10 +233,10 @@ Authorization: Bearer {{token}}
   "confirmPassword": "NuevaPassword2026!"
 }
 
-### Prueba 26: Error - Nueva contraseña IGUAL a la actual (Zod .refine)
-PUT http://localhost:3000/api/user/password
-Content-Type: application/json
+### Prueba 21: Cambio de Password - Error (Igual a la anterior)
+PUT {{baseUrl}}/user/password
 Authorization: Bearer {{token}}
+Content-Type: application/json
 
 {
   "currentPassword": "NuevaPassword2026!",
@@ -377,36 +244,59 @@ Authorization: Bearer {{token}}
   "confirmPassword": "NuevaPassword2026!"
 }
 
-### Prueba 27: Error - Confirmación no coincide (Zod .refine)
-PUT http://localhost:3000/api/user/password
+### Prueba 22: Inyección NoSQL (Sanitización)
+POST {{baseUrl}}/user/login
 Content-Type: application/json
+
+{
+  "email": { "$gt": "" },
+  "password": "123"
+}
+
+### Prueba 23: Borrado Lógico (Soft Delete)
+DELETE {{baseUrl}}/user?soft=true
 Authorization: Bearer {{token}}
 
-{
-  "currentPassword": "NuevaPassword2026!",
-  "newPassword": "OtraDiferente123!",
-  "confirmPassword": "NoCoincido!!!"
-}
-
-### Prueba 28: Error - Contraseña actual incorrecta (Bcrypt compare)
-PUT http://localhost:3000/api/user/password
-Content-Type: application/json
+### Prueba 24: Ver Papelera (Solo Admin)
+GET {{baseUrl}}/user/trash
 Authorization: Bearer {{token}}
 
-{
-  "currentPassword": "SoyUnaPasswordFalsa",
-  "newPassword": "PasswordValida123!",
-  "confirmPassword": "PasswordValida123!"
-}
+### Prueba 25: Borrado Físico (Hard Delete)
+DELETE {{baseUrl}}/user?soft=false
+Authorization: Bearer {{token}}
 
-### Prueba 29: Refresh Token (Obtener nuevo Access Token)
-POST http://localhost:3000/api/user/refresh
+### ============================================================
+### SECCIÓN 7: GESTIÓN DE SESIÓN (Punto 7 de Rúbrica)
+### ============================================================
+
+### Prueba 26: Refresh Token (Obtener nuevo Access)
+POST {{baseUrl}}/user/refresh
 Content-Type: application/json
 
 {
-  "refreshToken": "{{refreshToken_obtenido_en_login}}"
+  "refreshToken": "{{refreshToken}}"
 }
 
-### Prueba 30: Logout
-POST http://localhost:3000/api/user/logout
+### Prueba 27: Logout (Invalidar sesión)
+POST {{baseUrl}}/user/logout
+Authorization: Bearer {{token}}
+
+### Prueba 28: Intento de Refresh tras Logout (Debe fallar)
+POST {{baseUrl}}/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Prueba 29: Acceso denegado (Sin Token)
+GET {{baseUrl}}/user/me
+
+### Prueba 30: Acceso con Token Corrupto
+GET {{baseUrl}}/user/me
+Authorization: Bearer token-falso-123
+
+### Prueba Nueva: Admin borra a Invitado
+# Sustituye EL_ID_DEL_INVITADO por el que copiaste
+DELETE http://localhost:3000/api/user/69d567c0a3d9fedb5fdc4541?soft=true
 Authorization: Bearer {{token}}

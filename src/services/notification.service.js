@@ -16,11 +16,16 @@ notificationService.on('user:verified', (user) => {
 });
 
 notificationService.on('company:created', (data) => {
-  console.log(`[EVENT] Empresa: ${data.name} creada (CIF: ${data.cif}) por el usuario ${data.email}`);
+  console.log(`[EVENT] Empresa: ${data.name} (CIF: ${data.cif}) creada por ${data.fullName}`);
 });
 
 notificationService.on('company:joined', (data) => {
-  console.log(`[EVENT] Empresa: El usuario ${data.email} se ha unido a la empresa con CIF: ${data.cif}`);
+  console.log(`[EVENT] Empresa: ${data.fullName} se ha unido a la empresa ${data.cif}`);
+});
+
+notificationService.on('user:deleted', (data) => {
+  const typeMsg = data.type === 'soft' ? 'Borrado Lógico (Desactivado)' : 'Borrado Físico (Eliminado)';
+  console.log(`[EVENT] Usuario Eliminado [${typeMsg}]: ${data.email}`);
 });
 
 export default notificationService;

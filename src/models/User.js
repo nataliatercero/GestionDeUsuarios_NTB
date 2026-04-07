@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { softDeletePlugin } from '../plugins/softDelete.plugin.js';
 
 const { Schema } = mongoose;
 
@@ -80,6 +81,8 @@ userSchema.virtual('fullName').get(function () {
   return `${this.name || ''} ${this.lastName || ''}`.trim(); // Elimina espacios sobrantes si falta alguno de los dos con .trim (si no hay alguno de los dos pone '' para que no salga "undefined")
 });
 
+userSchema.plugin(softDeletePlugin);
 const User = mongoose.model('User', userSchema);
+
 
 export default User;

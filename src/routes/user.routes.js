@@ -5,6 +5,7 @@ import { updateCompanySchema } from '../validators/company.validator.js';
 import { register, login, getProfile, updateProfile,  verifyEmail } from '../controllers/user.controller.js';
 import { updateCompanyData } from '../controllers/company.controller.js';
 import { authMiddleware, isVerified, hasProfile } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
@@ -26,5 +27,14 @@ router.get('/me', authMiddleware, getProfile);
 // Onboarding de empresa
 // Requiere Token, estar verificado y pasar el validador de empresa
 router.patch('/company', authMiddleware, isVerified, hasProfile, validate(updateCompanySchema), updateCompanyData);
+
+// Subida de Logo
+router.patch('/logo', authMiddleware, isVerified, hasProfile, upload, uploadLogo);
+
+// Eliminar usuario
+router.delete('/', authMiddleware, deleteUser);
+
+// Papelera para admins
+router.get('/trash', authMiddleware, isVerified, authorize('admin'), getTrash);
 
 export default router;

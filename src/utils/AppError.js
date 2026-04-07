@@ -44,6 +44,11 @@ export class AppError extends Error {
   static tooManyRequests(message = 'Demasiadas peticiones', code = 'RATE_LIMIT') {
     return new AppError(message, 429, code);
   }
+
+  // Para cuando el usuario está autenticado pero NO tiene permisos
+  static forbidden(message = 'No tienes permisos para realizar esta acción', code = 'FORBIDDEN') {
+    return new AppError(message, 403, code);
+  }
 }
 
 export default AppError;

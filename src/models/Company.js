@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { softDeletePlugin } from '../plugins/softDelete.plugin.js';
 
 const { Schema } = mongoose;
 
@@ -48,6 +49,7 @@ const companySchema = new Schema(
   }
 );
 
+userSchema.plugin(softDeletePlugin);
 const Company = mongoose.model('Company', companySchema);
 
 export default Company;

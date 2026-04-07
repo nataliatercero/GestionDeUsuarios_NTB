@@ -214,3 +214,55 @@ export const verifyEmail = async (req, res, next) => {
     next(error); 
   }
 };
+
+// SOFT DELETE
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { soft } = req.query; // Capturamos el ?soft=true de la URL
+
+    let user;
+    let message;
+
+    if (soft === 'true') {
+      user = await User.softDeleteById(userId, userId.toString());
+      message = 'Usuario desactivado correctamente (Soft Delete)';
+    } else {
+      user = await User.hardDelete(userId);
+      message = 'Usuario eliminado permanentemente de la base de datos';
+    }
+
+    if (!user) return next(AppError.notFound('Usuario'));
+
+    // Emitimos el evento
+    notificationService.emit('user:deleted', { 
+      email: user.email, 
+      type: soft === 'true' ? 'soft' : 'hard' 
+    });
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: { id: user._id }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET TRASH (Papelera de usuarios para admins)
+export const getTrash = async (req, res, next) => {
+  try {
+    // YA NO NECESITAS EL IF DEL ROLE AQUÍ, el middleware lo hace antes
+    const deletedUsers = await User.findDeleted({ company: req.user.company });
+
+    res.status(200).json({
+      success: true,
+      count: deletedUsers.length,
+      data: deletedUsers
+    });
+  } catch (error) {
+    next(error);
+  }
+};

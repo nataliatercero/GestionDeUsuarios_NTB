@@ -188,7 +188,7 @@ Authorization: Bearer {{token}}
 GET http://localhost:3000/api/user/me
 Authorization: Bearer {{token}}
 
-### Prueba 10: Subida de Logo con éxito
+### Prueba 10: Subida de Logo con éxito 
 PATCH http://localhost:3000/api/user/logo
 Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=boundary
@@ -216,7 +216,7 @@ Este es un archivo de texto falso.
 
 
 ### Prueba 10.2: Error - Subir sin archivo
-# Debería devolver el error 400 que pusimos en el controlador: "Por favor, selecciona una imagen".
+# Debería devolver el error 400 que pusimos en el controlador
 PATCH http://localhost:3000/api/user/logo
 Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=boundary
@@ -229,7 +229,7 @@ datos basura
 
 
 ### Prueba 11: Verificar que el logo se guardó en la DB
-# En la respuesta de este GET, el campo 'company' (si has hecho el populate) 
+# En la respuesta de este GET, el campo 'company' 
 # debe tener el campo 'logo' con la ruta "/uploads/logo-..."
 GET http://localhost:3000/api/user/me
 Authorization: Bearer {{token}}
@@ -239,3 +239,64 @@ Authorization: Bearer {{token}}
 # Copia el nombre del archivo que te devuelva la Prueba 10 y pégalo aquí.
 # Si el navegador o el test te devuelve la imagen, el app.use(static) está perfecto.
 GET http://localhost:3000/uploads/logo-AQUI_EL_NOMBRE_QUE_TE_DE_EL_CONTROLADOR.png
+
+### Prueba 13: Borrado Lógico (Soft Delete)
+# Debe devolver success: true y un mensaje confirmando el borrado lógico.
+# En la consola de Node deberías ver: [EVENT] Usuario Eliminado [Borrado Lógico]: bildy_master@test.com
+DELETE http://localhost:3000/api/user?soft=true
+Authorization: Bearer {{token}}
+
+
+### Prueba 14: Comprobación de persistencia tras Soft Delete
+# Si intentas hacer un GET al perfil ahora, el controlador debería dar un 404 (Not Found)
+GET http://localhost:3000/api/user/me
+Authorization: Bearer {{token}}
+
+
+### Prueba 15: Comprobación de Login post-borrado
+# Debería dar 401 Unauthorized. Aunque el usuario esté en la DB, el findOne() no lo encontrará.
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+  "email": "BILDY_MASTER@TEST.COM",
+  "password": "Bildy2026!"
+}
+
+
+### Prueba 16: Borrado Físico (Hard Delete)
+# NOTA: Para probar esto necesitas registrar un usuario nuevo o cambiar 'deleted' a false en Atlas.
+# Elimina el registro definitivamente de la colección.
+DELETE http://localhost:3000/api/user?soft=false
+Authorization: Bearer {{token}}
+
+### Prueba 17: Sanitización NoSQL Injection
+# Si envías un operador de Mongo en el body, el middleware sanitizeBody debería limpiarlo.
+# El email debería procesarse como un string literal, no como un objeto de comparación.
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+  "email": { "$gt": "" },
+  "password": "CualquierPassword"
+}
+
+### Prueba 18: Ver Papelera - Caso Éxito (Siendo Admin)
+# Después de haber hecho la Prueba 13 (Soft Delete), este endpoint 
+# debería devolver una lista con ese usuario borrado.
+GET http://localhost:3000/api/user/trash
+Authorization: Bearer {{token}}
+
+
+### Prueba 19: Ver Papelera - Error (Siendo Guest)
+# Si usas el token del usuario 2 (que se unió a una empresa y es guest),
+# el controlador debería devolver 403 Forbidden.
+GET http://localhost:3000/api/user/trash
+Authorization: Bearer {{token_usuario_2}}
+
+
+### Prueba 20: Ver Papelera - Vacía
+# Si no hay usuarios borrados en esa compañía, debería devolver un array vacío [] 
+# con success: true, no un error.
+GET http://localhost:3000/api/user/trash
+Authorization: Bearer {{token}}

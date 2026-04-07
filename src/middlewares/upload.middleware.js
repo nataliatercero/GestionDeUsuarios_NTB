@@ -4,7 +4,7 @@ import { AppError } from '../utils/AppError.js';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); 
+    cb(null, path.join(process.cwd(), 'uploads'));
   },
   filename: (req, file, cb) => {
     // Sufijo aleatorio para evitar colisiones

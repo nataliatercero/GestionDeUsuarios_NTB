@@ -28,4 +28,8 @@ notificationService.on('user:deleted', (data) => {
   console.log(`[EVENT] Usuario Eliminado [${typeMsg}]: ${data.email}`);
 });
 
+notificationService.on('user:invited', (data) => {
+  console.log(`[EVENT] ✉️  ${data.adminName} ha invitado a ${data.guestName} a la empresa "${data.companyName}" (${data.email})`);
+});
+
 export default notificationService;

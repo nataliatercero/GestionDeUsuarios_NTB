@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
-import { registerUserSchema, loginUserSchema, updateProfileSchema, verifyEmailSchema } from '../validators/user.validator.js';
+import { registerUserSchema, loginUserSchema, updateProfileSchema, verifyEmailSchema, inviteUserSchema, changePasswordSchema } from '../validators/user.validator.js';
 import { updateCompanySchema } from '../validators/company.validator.js'; 
-import { register, login, getProfile, updateProfile,  verifyEmail } from '../controllers/user.controller.js';
+import { register, login, getProfile, updateProfile,  verifyEmail, uploadLogo, deleteUser, getTrash, changePassword } from '../controllers/user.controller.js';
 import { updateCompanyData } from '../controllers/company.controller.js';
 import { authMiddleware, isVerified, hasProfile } from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/upload.middleware.js';
@@ -39,6 +39,12 @@ router.patch('/logo', authMiddleware, isVerified, hasProfile, authorize('admin')
 
 // Papelera para admins
 router.get('/trash', authMiddleware, isVerified, authorize('admin'), getTrash);
+
+// Invitar compañeros
+router.post('/invite', authMiddleware, isVerified, hasProfile, authorize('admin'), validate(inviteUserSchema), inviteUser);
+
+// Cambiar contraseña
+router.put('/password', authMiddleware, isVerified, validate(changePasswordSchema), changePassword );
 
 // Eliminar usuario
 router.delete('/', authMiddleware, isVerified, deleteUser);

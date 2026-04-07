@@ -300,3 +300,100 @@ Authorization: Bearer {{token_usuario_2}}
 # con success: true, no un error.
 GET http://localhost:3000/api/user/trash
 Authorization: Bearer {{token}}
+
+### Prueba 21: Invitar a un compañero (Éxito - Siendo Admin)
+# Debe crear el usuario con rol 'guest', misma company y status 'verified'.
+# Verifica la consola de Node para ver el evento: [EVENT] ✉️ Profe Bildy ha invitado a...
+POST http://localhost:3000/api/user/invite
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "companero_nuevo@test.com",
+  "name": "Juan",
+  "lastName": "Invitado",
+  "nif": "11223344K"
+}
+
+
+### Prueba 22: Error al invitar (Siendo Guest)
+# El usuario_2 es guest, por lo que el authorize('admin') debe devolver 403 Forbidden.
+POST http://localhost:3000/api/user/invite
+Content-Type: application/json
+Authorization: Bearer {{token_usuario_2}}
+
+{
+  "email": "otro_intento@test.com",
+  "name": "Intento",
+  "lastName": "Fallido",
+  "nif": "00000000T"
+}
+
+
+### Prueba 23: Login del usuario invitado
+# Probamos que el invitado puede entrar con la contraseña temporal.
+POST http://localhost:3000/api/user/login
+Content-Type: application/json
+
+{
+  "email": "companero_nuevo@test.com",
+  "password": "Temporal123!"
+}
+
+
+### Prueba 24: Error al invitar usuario ya existente
+# Debe devolver un 409 Conflict.
+POST http://localhost:3000/api/user/invite
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "BILDY_MASTER@TEST.COM",
+  "name": "Duplicado",
+  "lastName": "Test",
+  "nif": "99999999X"
+}
+
+### Prueba 25: Cambio de contraseña con éxito
+PUT http://localhost:3000/api/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "Bildy2026!",
+  "newPassword": "NuevaPassword2026!",
+  "confirmPassword": "NuevaPassword2026!"
+}
+
+### Prueba 26: Error - Nueva contraseña IGUAL a la actual (Zod .refine)
+PUT http://localhost:3000/api/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "NuevaPassword2026!",
+  "newPassword": "NuevaPassword2026!",
+  "confirmPassword": "NuevaPassword2026!"
+}
+
+### Prueba 27: Error - Confirmación no coincide (Zod .refine)
+PUT http://localhost:3000/api/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "NuevaPassword2026!",
+  "newPassword": "OtraDiferente123!",
+  "confirmPassword": "NoCoincido!!!"
+}
+
+### Prueba 28: Error - Contraseña actual incorrecta (Bcrypt compare)
+PUT http://localhost:3000/api/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "SoyUnaPasswordFalsa",
+  "newPassword": "PasswordValida123!",
+  "confirmPassword": "PasswordValida123!"
+}

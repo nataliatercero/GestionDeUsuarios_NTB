@@ -1,0 +1,154 @@
+### --- CONFIGURACIÓN DE VARIABLES ---
+@baseUrl = http://localhost:3000/api
+@token = {{login.response.body.token}}
+@refreshToken = {{login.response.body.refreshToken}}
+
+# --- CAMBIA ESTO CON EL CÓDIGO QUE VEAS EN TU MONGO ATLAS ---
+@verificationCode = 911047 
+
+### ============================================================
+### 1. REGISTRO (Punto 1 Rúbrica)
+### ============================================================
+# @name register
+POST {{baseUrl}}/user/register
+Content-Type: application/json
+
+{
+  "email": "ADMIN_MASTER@TEST.COM",
+  "password": "Password123!"
+}
+
+### ============================================================
+### 2. VALIDACIÓN DE EMAIL (Punto 2 Rúbrica)
+### ============================================================
+# @name validation
+PUT {{baseUrl}}/user/validation
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ 
+  "code": "{{verificationCode}}" 
+}
+
+### ============================================================
+### 3. LOGIN (Punto 3 Rúbrica)
+### ============================================================
+# @name login
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "admin_master@test.com",
+  "password": "Password123!"
+}
+
+### ============================================================
+### 4. ONBOARDING: DATOS PERSONALES (Punto 4 Rúbrica)
+### ============================================================
+# @name onboardingPersonal
+PUT {{baseUrl}}/user/register
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Natalia",
+  "lastName": "Tercero",
+  "nif": "12345678Z"
+}
+
+### ============================================================
+### 5. ONBOARDING: CREAR COMPAÑÍA (Punto 4 Rúbrica)
+### ============================================================
+# @name onboardingCompany
+PATCH {{baseUrl}}/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isFreelance": false,
+  "name": "Bildy Soluciones S.L.",
+  "cif": "B87654321",
+  "address": {
+    "street": "Avenida de la Informática",
+    "number": "10",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+### ============================================================
+### 6. SUBIR LOGO (Punto 5 Rúbrica)
+### ============================================================
+# @name uploadLogo
+PATCH {{baseUrl}}/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="logo"; filename="mologo.png"
+Content-Type: image/png
+
+< ./mologo.png
+--boundary--
+
+### ============================================================
+### 7. OBTENER PERFIL (Punto 6 Rúbrica - Populate + Virtuals)
+### ============================================================
+# @name getProfile
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
+### ============================================================
+### 8. INVITAR COMPAÑERO (Punto 10 Rúbrica)
+### ============================================================
+# @name invite
+POST {{baseUrl}}/user/invite
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "empleado_nuevo@test.com",
+  "name": "Juan",
+  "lastName": "Invitado",
+  "nif": "11223344K"
+}
+
+### ============================================================
+### 9. CAMBIAR CONTRASEÑA (Bonus 1)
+### ============================================================
+# @name changePassword
+PUT {{baseUrl}}/user/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "Password123!",
+  "newPassword": "NuevaPassword2026!",
+  "confirmPassword": "NuevaPassword2026!"
+}
+
+### ============================================================
+### 10. REFRESH TOKEN (Punto 7 Rúbrica)
+### ============================================================
+# @name refresh
+POST {{baseUrl}}/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ============================================================
+### 11. LOGOUT (Punto 7 Rúbrica)
+### ============================================================
+# @name logout
+POST {{baseUrl}}/user/logout
+Authorization: Bearer {{token}}
+
+### ============================================================
+### 12. BORRADO SOFT (Punto 8 Rúbrica)
+### ============================================================
+# NOTA: Regístrate/Loguéate de nuevo si el logout invalidó el token
+DELETE {{baseUrl}}/user?soft=true
+Authorization: Bearer {{token}}

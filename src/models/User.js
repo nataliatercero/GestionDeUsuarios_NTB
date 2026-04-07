@@ -41,6 +41,10 @@ const userSchema = new Schema(
       default: 'pending',
       index: true // Index 
     },
+    refreshToken: {
+      type: String,
+      select: false // No lo enviamos en los GET por seguridad
+    },
     verificationCode: {
       type: String,
       select: false
@@ -60,11 +64,7 @@ const userSchema = new Schema(
       postal: String,
       city: String,
       province: String
-    },
-    deleted: {
-      type: Boolean,
-      default: false // Soft delete
-    },
+    }
   },
   {
     timestamps: true, // Crea createdAt y updatedAt automáticamente

@@ -55,22 +55,26 @@ export const verifyEmailSchema = z.object({
 
 // Esquema para invitar a un usuario
 export const inviteUserSchema = z.object({
-  email: z.string().email().transform(val => val.toLowerCase()),
-  name: z.string().min(1),
-  lastName: z.string().min(1),
-  nif: z.string().min(9)
+  body: z.object({
+    email: z.string().email().transform(val => val.toLowerCase()),
+    name: z.string().min(1),
+    lastName: z.string().min(1),
+    nif: z.string().min(9)
+  })
 });
 
 //Esquema para cambiar la contraseña
 
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
-  newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres"),
-  confirmPassword: z.string()
-}).refine((data) => data.newPassword !== data.currentPassword, {
-  message: "La nueva contraseña debe ser diferente a la actual",
-  path: ["newPassword"],
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
+  body: z.object({
+    currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
+    newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres"),
+    confirmPassword: z.string()
+  }).refine((data) => data.newPassword !== data.currentPassword, {
+    message: "La nueva contraseña debe ser diferente a la actual",
+    path: ["newPassword"],
+  }).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  })
 });

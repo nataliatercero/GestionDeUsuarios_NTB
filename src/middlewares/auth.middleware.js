@@ -13,10 +13,10 @@ export const authMiddleware = async (req, res, next) => {
     const token = req.headers.authorization.split(' ').pop();
 
     // Verificar el token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_ACCESS);
 
     // Buscar al usuario en la BD (usando el id del payload del token)
-    const user = await User.findById(decoded.id);
+    const user = await User.findOne({ _id: decoded.id, deleted: { $ne: true } });
 
     if (!user) {
       return next(new AppError('El usuario ya no existe', 401, 'USER_NOT_FOUND'));

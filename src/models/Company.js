@@ -37,10 +37,6 @@ const companySchema = new Schema(
     isFreelance: {
       type: Boolean,
       default: false // true si el usuario se registró como autónomo
-    },
-    deleted: {
-      type: Boolean,
-      default: false // Soft delete
     }
   },
   {
@@ -49,7 +45,7 @@ const companySchema = new Schema(
   }
 );
 
-userSchema.plugin(softDeletePlugin);
+companySchema.plugin(softDeletePlugin);
 const Company = mongoose.model('Company', companySchema);
 
 export default Company;

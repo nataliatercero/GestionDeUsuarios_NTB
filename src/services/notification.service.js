@@ -16,11 +16,10 @@ notificationService.on('user:verified', (user) => {
 });
 
 notificationService.on('company:created', (data) => {
-  console.log(`[EVENT] Empresa: ${data.name} (CIF: ${data.cif}) creada por ${data.fullName}`);
+  console.log(`[EVENT] Empresa: ${data.companyName} (CIF: ${data.cif}) creada por ${data.userName}`);
 });
-
 notificationService.on('company:joined', (data) => {
-  console.log(`[EVENT] Empresa: ${data.fullName} se ha unido a la empresa ${data.cif}`);
+  console.log(`[EVENT] Empresa: ${data.userName} se ha unido a ${data.companyName} (${data.cif})`);
 });
 
 notificationService.on('user:deleted', (data) => {

@@ -1,25 +1,27 @@
 import Company from '../models/Company.js';
 import User from '../models/User.js';
-import notificationService from '../services/notificationService.js';
+import notificationService from '../services/notification.service.js';
 import { AppError } from '../utils/AppError.js';
 
 export const updateCompanyData = async (req, res, next) => {
   try {
     const userId = req.user._id;
+    // Extraemos los datos que vienen del validador (Zod discriminatedUnion)
     let { name, cif, address, isFreelance } = req.body;
 
-    // Lógica para Autónomos
+    // Lógica para Autónomos 
     if (isFreelance) {
+      // Si es autónomo, ignoramos lo que venga en el body y usamos sus datos de perfil
       cif = req.user.nif; 
       name = req.user.fullName;
-      // Si no envían dirección en el body, usamos la que ya tiene el usuario
-      address = address || req.user.address; 
+      // La dirección de la empresa es su dirección personal
+      address = req.user.address; 
     }
 
-    // Buscar si la empresa ya existe
+    // Buscar si la empresa ya existe por CIF
     let company = await Company.findOne({ cif });
     let isNew = false;
-    let finalRole = 'admin'; // Por defecto, el que llega aquí suele ser admin
+    let finalRole = 'admin'; 
 
     if (!company) {
       // CASO A: CREAR EMPRESA
@@ -33,13 +35,14 @@ export const updateCompanyData = async (req, res, next) => {
       isNew = true;
     } else {
       // CASO B: UNIRSE A EMPRESA EXISTENTE
-      // Solo es admin si ya era el owner de esa empresa
-      const isOwner = company.owner.toString() === userId.toString();
+      // Si el CIF ya existía, el usuario se une. 
+      // Por rúbrica: "el usuario se une a esa compañía existente y su role cambia a guest"
+      // EXCEPCIÓN: Si ya era el owner (por si repite la petición), se queda como admin.
+      const isOwner = company.owner?.toString() === userId.toString();
       finalRole = isOwner ? 'admin' : 'guest';
     }
 
-    // Vincular usuario y actualizar rol en una sola operación
-    // { new: true } nos devuelve el usuario ya actualizado
+    // Vincular usuario y actualizar rol
     const updatedUser = await User.findByIdAndUpdate(
       userId, 
       { 
@@ -49,17 +52,18 @@ export const updateCompanyData = async (req, res, next) => {
       { new: true, runValidators: true }
     );
 
-    // Eventos
+    // Emisión de Eventos
     const eventName = isNew ? 'company:created' : 'company:joined';
     notificationService.emit(eventName, { 
-      fullName: req.user.fullName, 
-      name: company.name, 
+      userName: req.user.fullName, 
+      companyName: company.name, 
       cif: company.cif 
     });
 
+    // Respuesta (201 si es creación, 200 si es vínculo)
     res.status(isNew ? 201 : 200).json({
       success: true,
-      message: isNew ? 'Empresa creada y vinculada' : 'Vinculado a empresa existente',
+      message: isNew ? 'Empresa creada y vinculada correctamente' : 'Vinculado a empresa existente',
       data: {
         company,
         userRole: updatedUser.role

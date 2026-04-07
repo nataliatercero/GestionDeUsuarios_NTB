@@ -1,5 +1,6 @@
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDNkNzg2MDU5NWI2MDBmYmY1ZDRjNiIsImlhdCI6MTc3NTQ5MDk1MCwiZXhwIjoxNzc1NDk0NTUwfQ.28-h2SZImUGBqbUVIRxBVQpi0HAHTMwiBEIRoTkwSxs
 @token_usuario_2 = ey
+@refreshToken_obtenido_en_login = eyH
 ### Prueba 1: Registro con éxito (Status: 201 Created)
 # Zod debe eliminar "campo_hacker" y normalizar el email a minúsculas
 POST http://localhost:3000/api/user/register
@@ -397,3 +398,15 @@ Authorization: Bearer {{token}}
   "newPassword": "PasswordValida123!",
   "confirmPassword": "PasswordValida123!"
 }
+
+### Prueba 29: Refresh Token (Obtener nuevo Access Token)
+POST http://localhost:3000/api/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken_obtenido_en_login}}"
+}
+
+### Prueba 30: Logout
+POST http://localhost:3000/api/user/logout
+Authorization: Bearer {{token}}

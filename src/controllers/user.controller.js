@@ -5,6 +5,25 @@ import jwt from 'jsonwebtoken';
 import notificationService from '../services/notification.service.js';
 import Company from '../models/Company.js';
 
+// Función para generar ambos tokens
+const generateTokens = (userId) => {
+  // Access Token: Duración corta (desde .env)
+  const accessToken = jwt.sign(
+    { id: userId }, 
+    process.env.JWT_SECRET_ACCESS, 
+    { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
+  );
+
+  // Refresh Token: Duración larga (desde .env)
+  const refreshToken = jwt.sign(
+    { id: userId }, 
+    process.env.JWT_SECRET_REFRESH, 
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+  );
+
+  return { accessToken, refreshToken };
+};
+
 // REGISTRO
 
 export const register = async (req, res, next) => {
@@ -16,12 +35,11 @@ export const register = async (req, res, next) => {
       return next(AppError.conflict('El correo electrónico ya está registrado'));
     }
 
-    // Generar código de 6 dígitos
     const verificationCode = Math.random().toString().substring(2, 8);
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Creamos el usuario
     const newUser = await User.create({
       email,
       password: hashedPassword,
@@ -29,21 +47,23 @@ export const register = async (req, res, next) => {
       status: 'pending'
     });
 
-    // Generamos un token temporal para que pueda usar la ruta de validación
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Generamos tokens
+    const { accessToken, refreshToken } = generateTokens(newUser._id);
+
+    // GUARDAR el refresh token en el documento
+    // Usamos findByIdAndUpdate para ser más directos
+    await User.findByIdAndUpdate(newUser._id, { refreshToken });
 
     notificationService.emit('user:registered', newUser);
 
     res.status(201).json({
       success: true,
       message: 'Usuario registrado. Código generado.',
-      token, // Lo enviamos para que pueda validar el email
-      data: {
-        id: newUser._id,
-        email: newUser.email,
-        status: newUser.status
-      }
+      token: accessToken,
+      refreshToken: refreshToken,
+      data: { id: newUser._id, email: newUser.email, status: newUser.status }
     });
+
   } catch (error) {
     next(error);
   }
@@ -65,21 +85,17 @@ export const login = async (req, res, next) => {
     }
 
     // Generar el Token (JWT)
-    const token = jwt.sign(
-      { id: user._id }, 
-      process.env.JWT_SECRET, 
-      { expiresIn: '24h' }
-    );
+    const { accessToken, refreshToken } = generateTokens(user._id);
 
-    // Respuesta con el token
+    user.refreshToken = refreshToken;
+    await user.save();
+
     res.status(200).json({
       success: true,
       message: 'Login correcto',
-      token,
-      data: {
-        id: user._id,
-        email: user.email
-      }
+      token: accessToken,
+      refreshToken: refreshToken,
+      data: { id: user._id, email: user.email }
     });
 
   } catch (error) {
@@ -195,11 +211,10 @@ export const verifyEmail = async (req, res, next) => {
     }
 
     // Si hay éxito, modificar status a verified y devolver ACK
-    user.status = 'verified';
-    
-    // Limpiar campos temporales
-    user.verificationCode = undefined;
-    user.verificationAttempts = undefined;
+    await User.findByIdAndUpdate(user._id, {
+      $set: { status: 'verified' },
+      $unset: { verificationCode: '', verificationAttempts: '' } // Limpiar campos
+    });
     
     await user.save();
 
@@ -381,6 +396,55 @@ export const changePassword = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Contraseña actualizada correctamente'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// REFRESH
+
+export const refresh = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return next(AppError.unauthorized('No hay token'));
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH);
+    
+    // Buscamos al usuario y comprobamos su token guardado
+    const user = await User.findById(decoded.id).select('+refreshToken');
+
+    // Si el token enviado NO coincide con el de la DB (porque hubo logout), denegamos
+    if (!user || user.refreshToken !== refreshToken) {
+      return next(AppError.unauthorized('Sesión expirada o invalidada. Haz login de nuevo.'));
+    }
+
+    const tokens = generateTokens(user._id);
+    
+    // Rotamos el token guardando el nuevo
+    user.refreshToken = tokens.refreshToken;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    });
+  } catch (error) {
+    next(AppError.unauthorized('Token inválido'));
+  }
+};
+
+// LOGOUT
+export const logout = async (req, res, next) => {
+  try {
+    // Buscamos al usuario por el ID del Access 
+    // "Invalidamos" el token borrándolo de su documento 
+    await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
+
+    res.status(200).json({
+      success: true,
+      message: 'Sesión cerrada correctamente. Refresh token invalidado.'
     });
   } catch (error) {
     next(error);

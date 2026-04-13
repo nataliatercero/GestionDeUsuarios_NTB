@@ -5,6 +5,8 @@ import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
 import userRoutes from './routes/user.routes.js';
 import path from 'node:path';
+import morganBody from 'morgan-body';
+import { loggerStream } from './utils/handleLogger.js';
 
 const app = express();
 
@@ -35,6 +37,13 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // LIMPIEZA
 app.use(sanitizeBody); 
 app.use(limitStringLength(5000)); // Limitamos a 5000 caracteres por seguridad
+
+// LOGGER PARA SLACK
+morganBody(app, {
+  noColors: true,
+  skip: (req, res) => res.statusCode < 400, // Solo errores
+  stream: loggerStream
+});
 
 // RUTAS
 

@@ -152,3 +152,6 @@ Authorization: Bearer {{token}}
 # NOTA: Regístrate/Loguéate de nuevo si el logout invalidó el token
 DELETE {{baseUrl}}/user?soft=true
 Authorization: Bearer {{token}}
+
+###
+GET {{baseUrl}}/delivery_note/pdf

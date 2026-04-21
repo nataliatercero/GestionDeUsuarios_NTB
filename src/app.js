@@ -4,6 +4,7 @@ import { rateLimit } from 'express-rate-limit'
 import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
 import userRoutes from './routes/user.routes.js';
+import delivery_noteRoutes from './routes/delivery_note.routes.js';
 import path from 'node:path';
 import morganBody from 'morgan-body';
 import { loggerStream } from './utils/handleLogger.js';
@@ -49,6 +50,7 @@ morganBody(app, {
 
 // Ruta de prueba
 app.use('/api/user', userRoutes);
+app.use('/api/delivery_note', delivery_noteRoutes);
 
 // MIDDLEWARES DE ERROR (Siempre al final)
 app.use(notFound);      // Captura rutas que no existen (404)

@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import mongoose from 'mongoose';
 import { rateLimit } from 'express-rate-limit'
 import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
@@ -24,7 +25,10 @@ const limiter = rateLimit({
   standardHeaders: true, // Devuelve información del límite en las cabeceras 'RateLimit-*'
   legacyHeaders: false, // Desactiva las cabeceras 'X-RateLimit-*' antiguas
 });
-app.use(limiter);
+// Solo usamos el limiter si NO estamos testeando
+if (process.env.NODE_ENV !== 'test') {
+  app.use(limiter);
+}
 
 // MIDDLEWARES DE PARSEO
 
@@ -44,6 +48,16 @@ morganBody(app, {
   noColors: true,
   skip: (req, res) => res.statusCode < 400, // Solo errores
   stream: loggerStream
+});
+
+// SALUD
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // RUTAS

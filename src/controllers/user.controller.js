@@ -32,7 +32,7 @@ export const register = async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(AppError.conflict('El correo electrónico ya está registrado'));
+      throw AppError.conflict('El correo electrónico ya está registrado');
     }
 
     const verificationCode = Math.random().toString().substring(2, 8);
@@ -81,7 +81,7 @@ export const login = async (req, res, next) => {
     // Si no existe o la contraseña no coincide, lanzamos error genérico
     if (!user || !(await bcrypt.compare(password, user.password))) {
       // Usamos el 401 (No autorizado) para fallos de credenciales
-      return next(AppError.unauthorized('Email o contraseña incorrectos', 'INVALID_CREDENTIALS'));
+      throw AppError.unauthorized('Email o contraseña incorrectos', 'INVALID_CREDENTIALS');
     }
 
     // Generar el Token (JWT)
@@ -119,7 +119,7 @@ export const updateProfile = async (req, res, next) => {
     );
 
     if (!userUpdated) {
-      return next(AppError.notFound('Usuario'));
+      throw AppError.notFound('Usuario');
     }
 
     res.status(200).json({
@@ -149,7 +149,7 @@ export const getProfile = async (req, res, next) => {
     const user = await User.findById(req.user._id).populate('company');
 
     if (!user) {
-      return next(AppError.notFound('Usuario'));
+      throw AppError.notFound('Usuario');
     }
 
     res.status(200).json({
@@ -184,17 +184,17 @@ export const verifyEmail = async (req, res, next) => {
 
     // Comprobar si el usuario existe
     if (!user) {
-      return next(AppError.notFound('Usuario'));
+      throw AppError.notFound('Usuario');
     }
 
     // Comprobar si ya está verificado
     if (user.status === 'verified') {
-      return next(AppError.badRequest('Este email ya ha sido verificado anteriormente'));
+      throw AppError.badRequest('Este email ya ha sido verificado anteriormente');
     }
 
     // Control de intentos
     if (user.verificationAttempts <= 0) {
-      return next(AppError.tooManyRequests('Has agotado los 3 intentos permitidos.'));
+      throw AppError.tooManyRequests('Has agotado los 3 intentos permitidos.');
     }
 
     // Comprobar el código
@@ -204,10 +204,10 @@ export const verifyEmail = async (req, res, next) => {
       await user.save();
 
       // Error 
-      return next(AppError.badRequest(
+      throw AppError.badRequest(
         `Código incorrecto. Te quedan ${user.verificationAttempts} intentos.`,
         'INVALID_VERIFICATION_CODE'
-      ));
+      );
     }
 
     // Si hay éxito, modificar status a verified y devolver ACK
@@ -236,12 +236,12 @@ export const uploadLogo = async (req, res, next) => {
   try {
     // Validar que Multer haya procesado el archivo 
     if (!req.file) {
-      return next(AppError.badRequest('No se ha subido ningún archivo o formato no válido'));
+      throw AppError.badRequest('No se ha subido ningún archivo o formato no válido');
     }
 
     // Comprobar que el usuario tiene una compañía
     if (!req.user.company) {
-      return next(AppError.badRequest('El usuario no tiene una compañía asociada'));
+      throw AppError.badRequest('El usuario no tiene una compañía asociada');
     }
 
     // Construir la URL del logo
@@ -285,7 +285,7 @@ export const deleteUser = async (req, res, next) => {
       message = 'Usuario eliminado permanentemente de la base de datos';
     }
 
-    if (!user) return next(AppError.notFound('Usuario'));
+    if (!user) throw AppError.notFound('Usuario');
 
     // Emitimos el evento
     notificationService.emit('user:deleted', { 
@@ -315,12 +315,12 @@ export const deleteUserByAdmin = async (req, res, next) => {
     const userToDelete = await User.findById(id);
 
     if (!userToDelete) {
-      return next(AppError.notFound('El usuario que intentas borrar no existe'));
+      throw AppError.notFound('El usuario que intentas borrar no existe');
     }
 
     // SEGURIDAD: Verificar que pertenecen a la misma empresa
     if (userToDelete.company.toString() !== adminCompanyId.toString()) {
-      return next(AppError.forbidden('No puedes borrar a un usuario de otra empresa'));
+      throw AppError.forbidden('No puedes borrar a un usuario de otra empresa');
     }
 
     // Ejecutar el borrado
@@ -369,7 +369,7 @@ export const inviteUser = async (req, res, next) => {
     const { email, name, lastName, nif } = req.body;
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) return next(AppError.conflict('El usuario ya está registrado'));
+    if (existingUser) throw AppError.conflict('El usuario ya está registrado');
 
     // Generar salt explícito
     const salt = await bcrypt.genSalt(10);
@@ -426,7 +426,7 @@ export const changePassword = async (req, res, next) => {
     // Comprobar que la contraseña actual es correcta
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return next(AppError.unauthorized('La contraseña actual es incorrecta'));
+      throw AppError.unauthorized('La contraseña actual es incorrecta');
     }
 
     // Generar nuevo SALT y Hash para la nueva contraseña
@@ -451,7 +451,7 @@ export const changePassword = async (req, res, next) => {
 export const refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return next(AppError.unauthorized('No hay token'));
+    if (!refreshToken) throw AppError.unauthorized('No hay token');
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH);
     
@@ -460,7 +460,7 @@ export const refresh = async (req, res, next) => {
 
     // Si el token enviado NO coincide con el de la DB (porque hubo logout), denegamos
     if (!user || user.refreshToken !== refreshToken) {
-      return next(AppError.unauthorized('Sesión expirada o invalidada. Haz login de nuevo.'));
+      throw AppError.unauthorized('Sesión expirada o invalidada. Haz login de nuevo.');
     }
 
     const tokens = generateTokens(user._id);

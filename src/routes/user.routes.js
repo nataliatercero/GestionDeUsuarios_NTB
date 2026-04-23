@@ -17,7 +17,7 @@ router.post('/login', validate(loginUserSchema), login);
 // Rutas protegidas (requieren token)
 
 // Ruta para obtener el perfil propio
-router.get('/me', authMiddleware, getProfile);
+router.get('/me', authMiddleware, isVerified, getProfile);
 
 // Validación del correo electrónico mediante código de verificación
 router.put('/validation', authMiddleware, validate(verifyEmailSchema), verifyEmail);

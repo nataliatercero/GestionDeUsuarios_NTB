@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import notificationService from '../services/notification.service.js';
 import Company from '../models/Company.js';
 
@@ -9,15 +10,15 @@ import Company from '../models/Company.js';
 const generateTokens = (userId) => {
   // Access Token: Duración corta (desde .env)
   const accessToken = jwt.sign(
-    { id: userId }, 
-    process.env.JWT_SECRET_ACCESS, 
+    { id: userId, jti: randomUUID() },
+    process.env.JWT_SECRET_ACCESS,
     { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
   );
 
   // Refresh Token: Duración larga (desde .env)
   const refreshToken = jwt.sign(
-    { id: userId }, 
-    process.env.JWT_SECRET_REFRESH, 
+    { id: userId, jti: randomUUID() },
+    process.env.JWT_SECRET_REFRESH,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );
 
@@ -50,9 +51,10 @@ export const register = async (req, res, next) => {
     // Generamos tokens
     const { accessToken, refreshToken } = generateTokens(newUser._id);
 
-    // GUARDAR el refresh token en el documento
-    // Usamos findByIdAndUpdate para ser más directos
-    await User.findByIdAndUpdate(newUser._id, { refreshToken });
+    await User.collection.updateOne(
+      { _id: newUser._id },
+      { $set: { refreshToken } }
+    );
 
     notificationService.emit('user:registered', newUser);
 
@@ -314,8 +316,8 @@ export const deleteUserByAdmin = async (req, res, next) => {
     // Buscamos al usuario que queremos borrar
     const userToDelete = await User.findById(id);
 
-    if (!userToDelete) {
-      throw AppError.notFound('El usuario que intentas borrar no existe');
+    if (!userToDelete.company || userToDelete.company.toString() !== adminCompanyId.toString()) {
+      throw AppError.forbidden('No puedes borrar a un usuario de otra empresa');
     }
 
     // SEGURIDAD: Verificar que pertenecen a la misma empresa
@@ -465,9 +467,10 @@ export const refresh = async (req, res, next) => {
 
     const tokens = generateTokens(user._id);
     
-    // Rotamos el token guardando el nuevo
-    user.refreshToken = tokens.refreshToken;
-    await user.save();
+    await User.collection.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken: tokens.refreshToken } }
+    );
 
     res.status(200).json({
       success: true,
@@ -482,9 +485,10 @@ export const refresh = async (req, res, next) => {
 // LOGOUT
 export const logout = async (req, res, next) => {
   try {
-    // Buscamos al usuario por el ID del Access 
-    // "Invalidamos" el token borrándolo de su documento 
-    await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
+    await User.collection.updateOne(
+      { _id: req.user._id },
+      { $set: { refreshToken: null } }
+    );
 
     res.status(200).json({
       success: true,

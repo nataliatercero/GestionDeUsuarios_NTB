@@ -62,7 +62,7 @@ const fullOnboarding = async (overrides = {}) => {
     .send({ name: 'Test', lastName: 'User', nif: '12345678A' });
 
   // Empresa
-  const cif = `B${Date.now().toString().slice(-7)}`;
+  const cif = `B${Date.now().toString().slice(-8)}`;
   await request(app)
     .patch('/api/user/company')
     .set('Authorization', `Bearer ${user.token}`)
@@ -93,103 +93,95 @@ describe('User API — Práctica Intermedia', () => {
   // ── REGISTRO ──────────────────────────────────────────────────────────────
   describe('POST /api/user/register', () => {
     it('201 — registra un usuario con email y password válidos', async () => {
-      const res = await request(app).post('/api/user/register').send({
-        email: 'nuevo@test.com',
-        password: 'ValidPass123!',
-      });
+      const { statusCode, body } = await registerUser();
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.success).toBe(true);
-      expect(res.body.token).toBeDefined();
-      expect(res.body.refreshToken).toBeDefined();
-      expect(res.body.data.email).toBe('nuevo@test.com');
-      expect(res.body.data.status).toBe('pending');
+      expect(statusCode).toBe(201);
+      expect(body.success).toBe(true);
+      expect(body.token).toBeDefined();
+      expect(body.refreshToken).toBeDefined();
+      expect(body.data.status).toBe('pending');
     });
 
     it('409 — rechaza email duplicado', async () => {
-      await request(app).post('/api/user/register').send({
-        email: 'dup@test.com',
-        password: 'ValidPass123!',
-      });
+      const { email } = await registerUser(); // email dinámico
 
-      const res = await request(app).post('/api/user/register').send({
-        email: 'dup@test.com',
-        password: 'ValidPass123!',
-      });
+      const res = await request(app)
+        .post('/api/user/register')
+        .send({ email, password: 'ValidPass123!' });
 
       expect(res.statusCode).toBe(409);
     });
 
     it('400 — rechaza email inválido', async () => {
-      const res = await request(app).post('/api/user/register').send({
-        email: 'no-es-email',
-        password: 'ValidPass123!',
-      });
+      const res = await request(app)
+        .post('/api/user/register')
+        .send({ email: 'no-es-email', password: 'ValidPass123!' });
 
       expect(res.statusCode).toBe(400);
     });
 
     it('400 — rechaza password demasiado corta', async () => {
-      const res = await request(app).post('/api/user/register').send({
-        email: 'ok@test.com',
-        password: '123',
-      });
+      const res = await request(app)
+        .post('/api/user/register')
+        .send({ email: `short_${Date.now()}@test.com`, password: '123' });
 
       expect(res.statusCode).toBe(400);
     });
 
-    it('ignora campos extra (no los guarda en la respuesta)', async () => {
-      const res = await request(app).post('/api/user/register').send({
-        email: 'extra@test.com',
-        password: 'ValidPass123!',
-        extra_field: 'hacker',
-      });
+    it('400 — rechaza body vacío', async () => {
+      const res = await request(app)
+        .post('/api/user/register')
+        .send({});
 
-      expect(res.statusCode).toBe(201);
-      // El campo extra no debe aparecer en data
-      expect(res.body.data.extra_field).toBeUndefined();
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('ignora campos extra', async () => {
+      const { statusCode, body } = await registerUser({ extra_field: 'hacker' });
+
+      expect(statusCode).toBe(201);
+      expect(body.data.extra_field).toBeUndefined();
     });
   });
 
   // ── LOGIN ─────────────────────────────────────────────────────────────────
   describe('POST /api/user/login', () => {
     it('200 — login correcto devuelve tokens', async () => {
-      await request(app).post('/api/user/register').send({
-        email: 'login@test.com',
-        password: 'ValidPass123!',
-      });
+      const { email, password } = await registerUser();
 
-      const res = await request(app).post('/api/user/login').send({
-        email: 'login@test.com',
-        password: 'ValidPass123!',
-      });
+      const res = await request(app)
+        .post('/api/user/login')
+        .send({ email, password });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.token).toBeDefined();
       expect(res.body.refreshToken).toBeDefined();
     });
 
-    it('401 — rechaza credenciales incorrectas', async () => {
-      await request(app).post('/api/user/register').send({
-        email: 'wrong@test.com',
-        password: 'ValidPass123!',
-      });
+    it('401 — rechaza password incorrecta', async () => {
+      const { email } = await registerUser();
 
-      const res = await request(app).post('/api/user/login').send({
-        email: 'wrong@test.com',
-        password: 'Incorrect!',
-      });
+      const res = await request(app)
+        .post('/api/user/login')
+        .send({ email, password: 'Incorrecta123!' });
 
       expect(res.statusCode).toBe(401);
     });
 
     it('401 — usuario que no existe', async () => {
-      const res = await request(app).post('/api/user/login').send({
-        email: 'noexiste@test.com',
-        password: 'ValidPass123!',
-      });
+      const res = await request(app)
+        .post('/api/user/login')
+        .send({ email: `noexiste_${Date.now()}@test.com`, password: 'ValidPass123!' });
 
       expect(res.statusCode).toBe(401);
+    });
+
+    it('400 — body vacío', async () => {
+      const res = await request(app)
+        .post('/api/user/login')
+        .send({});
+
+      expect(res.statusCode).toBe(400);
     });
   });
 
@@ -206,6 +198,22 @@ describe('User API — Práctica Intermedia', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
+    });
+
+    it('200 — tras verificar el status es verified', async () => {
+      const user = await registerUser();
+      const code = await getVerificationCode(user.userId);
+
+      await request(app)
+        .put('/api/user/validation')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ code });
+
+      const meRes = await request(app)
+        .get('/api/user/me')
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(meRes.body.data.status).toBe('verified');
     });
 
     it('400 — código incorrecto', async () => {
@@ -287,6 +295,17 @@ describe('User API — Práctica Intermedia', () => {
       expect(res.body.data.fullName).toBe('Ana López');
     });
 
+    it('400 — body vacío no puede actualizar perfil', async () => {
+      const user = await registerAndVerify();
+
+      const res = await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({});
+
+      expect(res.statusCode).toBe(400);
+    });
+
     it('401 — sin token no puede actualizar el perfil', async () => {
       const res = await request(app)
         .put('/api/user/register')
@@ -335,7 +354,7 @@ describe('User API — Práctica Intermedia', () => {
 
   // ── ONBOARDING EMPRESA ────────────────────────────────────────────────────
   describe('PATCH /api/user/company', () => {
-    it('200 — admin puede crear empresa', async () => {
+    it('201 — admin puede crear empresa', async () => {
       const user = await registerAndVerify();
       // Completar perfil primero
       await request(app)
@@ -361,6 +380,82 @@ describe('User API — Práctica Intermedia', () => {
 
       expect(res.statusCode).toBe(201);
     });
+
+    it('200 — company aparece como objeto cuando existe', async () => {
+      const admin = await fullOnboarding();
+
+      const res = await request(app)
+        .get('/api/user/me')
+        .set('Authorization', `Bearer ${admin.token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(typeof res.body.data.company).toBe('object');
+      expect(res.body.data.company.cif).toBeDefined();
+    });
+
+    it('200 — si el CIF ya existe el usuario se une como guest', async () => {
+      const cif = `B${Date.now().toString().slice(-8)}`;
+
+      // Admin crea la empresa
+      const admin = await registerAndVerify();
+      await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ name: 'Admin', lastName: 'Test', nif: '12345678A' });
+      await request(app)
+        .patch('/api/user/company')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({
+          isFreelance: false, name: 'Empresa Compartida S.L.', cif,
+          address: {
+            street: 'Calle Test', number: '1',
+            postal: '28001', city: 'Madrid', province: 'Madrid',
+          },
+        });
+
+      // Segundo usuario intenta registrar el mismo CIF
+      const guest = await registerAndVerify();
+      await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${guest.token}`)
+        .send({ name: 'Guest', lastName: 'Test', nif: '87654321B' });
+
+      const res = await request(app)
+        .patch('/api/user/company')
+        .set('Authorization', `Bearer ${guest.token}`)
+        .send({
+          isFreelance: false, name: 'Empresa Compartida S.L.', cif,
+          address: {
+            street: 'Calle Test', number: '1',
+            postal: '28001', city: 'Madrid', province: 'Madrid',
+          },
+        });
+
+      expect(res.statusCode).toBe(200);
+
+      const meRes = await request(app)
+        .get('/api/user/me')
+        .set('Authorization', `Bearer ${guest.token}`);
+
+      expect(meRes.body.data.role).toBe('guest');
+    });
+
+  it('400 — sin perfil previo no puede crear empresa', async () => {
+    const user = await registerAndVerify();
+
+    const res = await request(app)
+      .patch('/api/user/company')
+      .set('Authorization', `Bearer ${user.token}`)
+      .send({
+        isFreelance: false, name: 'Empresa', cif: 'B12345678',
+        address: {
+          street: 'Calle', number: '1',
+          postal: '28001', city: 'Madrid', province: 'Madrid',
+        },
+      });
+
+    expect(res.statusCode).toBe(400);
+  });
 
     it('400 — sin perfil previo no puede crear empresa', async () => {
       const user = await registerAndVerify();
@@ -457,6 +552,21 @@ describe('User API — Práctica Intermedia', () => {
       expect(res.body.refreshToken).toBeDefined();
     });
 
+    it('401 — el refresh token antiguo queda invalidado tras rotar', async () => {
+      const user = await registerUser();
+
+      await request(app)
+        .post('/api/user/refresh')
+        .send({ refreshToken: user.refreshToken });
+
+      // Intentar usar el refresh token original otra vez
+      const res = await request(app)
+        .post('/api/user/refresh')
+        .send({ refreshToken: user.refreshToken });
+
+      expect(res.statusCode).toBe(401);
+    });
+
     it('401 — rechaza refresh token inválido', async () => {
       const res = await request(app)
         .post('/api/user/refresh')
@@ -547,6 +657,43 @@ describe('User API — Práctica Intermedia', () => {
       expect(res.body.data.role).toBe('guest');
     });
 
+    it('403 — guest no puede invitar usuarios', async () => {
+      const admin = await fullOnboarding();
+
+      // admin.me.company viene del GET /me con populate
+      const companyCif = admin.me.company.cif;
+      const companyName = admin.me.company.name;
+      const companyAddress = admin.me.company.address;
+
+      const guest = await registerAndVerify();
+      await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${guest.token}`)
+        .send({ name: 'Guest', lastName: 'Test', nif: '11111111H' });
+
+      await request(app)
+        .patch('/api/user/company')
+        .set('Authorization', `Bearer ${guest.token}`)
+        .send({
+          isFreelance: false,
+          name: companyName,
+          cif: companyCif,
+          address: companyAddress,
+        });
+
+      const res = await request(app)
+        .post('/api/user/invite')
+        .set('Authorization', `Bearer ${guest.token}`)
+        .send({
+          email: `shouldfail_${Date.now()}@test.com`,
+          name: 'X',
+          lastName: 'Y',
+          nif: '22222222J',
+        });
+
+      expect(res.statusCode).toBe(403);
+    });
+
     it('409 — no puede invitar un email ya registrado', async () => {
       const admin = await fullOnboarding();
 
@@ -586,6 +733,31 @@ describe('User API — Práctica Intermedia', () => {
 
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body.data)).toBe(true);
+    });
+
+    it('200 — usuario soft-deleted aparece en la papelera', async () => {
+      const admin = await fullOnboarding();
+
+      // Invitamos a un guest
+      const email = `trash_${Date.now()}@test.com`;
+      const inviteRes = await request(app)
+        .post('/api/user/invite')
+        .set('Authorization', `Bearer ${admin.token}`)
+        .send({ email, name: 'ToDelete', lastName: 'Test', nif: '33445566R' });
+
+      const guestId = inviteRes.body.data.id;
+
+      // Admin hace soft delete del guest
+      await request(app)
+        .delete(`/api/user/${guestId}?soft=true`)
+        .set('Authorization', `Bearer ${admin.token}`);
+
+      const res = await request(app)
+        .get('/api/user/trash')
+        .set('Authorization', `Bearer ${admin.token}`);
+
+      const deletedIds = res.body.data.map(u => u._id);
+      expect(deletedIds).toContain(guestId);
     });
 
     it('401 — sin token no puede acceder a la papelera', async () => {

@@ -5,7 +5,9 @@ import { rateLimit } from 'express-rate-limit'
 import { notFound, errorHandler } from './middlewares/error-handler.js';
 import { sanitizeBody, limitStringLength } from './middlewares/sanitize.middleware.js';
 import userRoutes from './routes/user.routes.js';
-import delivery_noteRoutes from './routes/delivery_note.routes.js';
+import clientRoutes from './routes/client.routes.js';
+import projectRoutes from './routes/project.routes.js';
+import deliveryNoteRoutes from './routes/deliverynote.routes.js';
 import path from 'node:path';
 import morganBody from 'morgan-body';
 import { loggerStream } from './utils/handleLogger.js';
@@ -64,7 +66,9 @@ app.get('/health', (req, res) => {
 
 // Ruta de prueba
 app.use('/api/user', userRoutes);
-app.use('/api/delivery_note', delivery_noteRoutes);
+app.use('/api/client', clientRoutes);
+app.use('/api/project', projectRoutes);
+app.use('/api/deliverynote', deliveryNoteRoutes);
 
 // MIDDLEWARES DE ERROR (Siempre al final)
 app.use(notFound);      // Captura rutas que no existen (404)

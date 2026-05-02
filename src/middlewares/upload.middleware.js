@@ -9,10 +9,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-export const upload = multer({
+const multerInstance = multer({
   storage: multer.memoryStorage(),
   fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-}).single('logo');
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+export const upload = multerInstance.single('logo');
+export const uploadField = (fieldName) => multerInstance.single(fieldName);

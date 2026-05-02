@@ -1,6 +1,10 @@
 import DeliveryNote from '../models/DeliveryNote.js';
 import Project from '../models/Project.js';
+import Company from '../models/Company.js';
 import { AppError } from '../utils/AppError.js';
+import { uploadToCloudinary } from '../services/storage.service.js';
+import { generateDeliveryNotePdf } from '../services/pdf.service.js';
+import { getIO } from '../sockets/index.js';
 
 // Crear un nuevo albarán vinculado a un proyecto y su cliente
 export const createDeliveryNote = async (req, res, next) => {
@@ -22,6 +26,8 @@ export const createDeliveryNote = async (req, res, next) => {
       user: req.user._id,
       company: companyId
     });
+
+    getIO()?.emit('deliverynote:created', { noteId: note._id, companyId, format: note.format });
 
     res.status(201).json({ success: true, data: note });
   } catch (error) {
@@ -91,14 +97,83 @@ export const deleteDeliveryNote = async (req, res, next) => {
   try {
     const companyId = req.user.company;
     const note = await DeliveryNote.findOne({ _id: req.params.id, company: companyId });
-    
+
     if (!note) throw AppError.notFound('Albarán');
-    
+
     // Bloqueo de seguridad: un albarán firmado es un documento legal que no debe borrarse
     if (note.signed) throw AppError.badRequest('No se puede eliminar un albarán firmado');
 
     await DeliveryNote.hardDelete(note._id);
     res.status(200).json({ success: true, message: 'Albarán eliminado' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Firmar un albarán: sube la imagen de firma a Cloudinary, genera el PDF y lo almacena
+export const signDeliveryNote = async (req, res, next) => {
+  try {
+    if (!req.file) throw AppError.badRequest('Se requiere la imagen de la firma');
+
+    const companyId = req.user.company;
+    const note = await DeliveryNote.findOne({ _id: req.params.id, company: companyId })
+      .populate('user', 'name lastName email')
+      .populate('client', 'name cif email')
+      .populate('project', 'name projectCode');
+
+    if (!note) throw AppError.notFound('Albarán');
+    if (note.signed) throw AppError.badRequest('El albarán ya ha sido firmado');
+
+    const company = await Company.findById(companyId);
+
+    // 1. Subir imagen de firma optimizada con Sharp
+    const { url: signatureUrl } = await uploadToCloudinary(req.file.buffer, {
+      folder: 'bildy/signatures',
+      publicId: `signature-${note._id}`,
+      maxWidth: 600,
+    });
+
+    // 2. Generar PDF con todos los datos y la URL de la firma
+    note.signatureUrl = signatureUrl;
+    const pdfBuffer = await generateDeliveryNotePdf(note, company);
+
+    // 3. Subir PDF a Cloudinary como recurso raw
+    const { url: pdfUrl } = await uploadToCloudinary(pdfBuffer, {
+      folder: 'bildy/pdfs',
+      publicId: `albaran-${note._id}`,
+      resourceType: 'raw',
+    });
+
+    // 4. Marcar el albarán como firmado
+    const signed = await DeliveryNote.findByIdAndUpdate(
+      note._id,
+      { signed: true, signedAt: new Date(), signatureUrl, pdfUrl },
+      { new: true }
+    );
+
+    getIO()?.emit('deliverynote:signed', {
+      noteId: signed._id,
+      companyId,
+      pdfUrl,
+      signedAt: signed.signedAt,
+    });
+
+    res.status(200).json({ success: true, data: signed });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Obtener la URL del PDF de un albarán firmado
+export const getDeliveryNotePdf = async (req, res, next) => {
+  try {
+    const companyId = req.user.company;
+    const note = await DeliveryNote.findOne({ _id: req.params.id, company: companyId });
+
+    if (!note) throw AppError.notFound('Albarán');
+    if (!note.pdfUrl) throw AppError.badRequest('El albarán aún no tiene PDF generado');
+
+    res.redirect(note.pdfUrl);
   } catch (error) {
     next(error);
   }

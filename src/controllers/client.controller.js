@@ -1,5 +1,6 @@
 import Client from '../models/Client.js';
 import { AppError } from '../utils/AppError.js';
+import { getIO } from '../sockets/index.js';
 
 // Crear un nuevo cliente asociado a la empresa del usuario
 export const createClient = async (req, res, next) => {
@@ -12,6 +13,9 @@ export const createClient = async (req, res, next) => {
     if (existing) throw AppError.conflict('Ya existe un cliente con ese CIF en tu empresa');
 
     const client = await Client.create({ ...req.body, user: req.user._id, company: companyId });
+
+    getIO()?.emit('client:created', { clientId: client._id, companyId, name: client.name });
+
     res.status(201).json({ success: true, data: client });
   } catch (error) {
     next(error);

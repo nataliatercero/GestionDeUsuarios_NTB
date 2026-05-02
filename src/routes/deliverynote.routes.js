@@ -1,21 +1,29 @@
 import { Router } from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
 import { authMiddleware, isVerified } from '../middlewares/auth.middleware.js';
+import { uploadField } from '../middlewares/upload.middleware.js';
 import { createDeliveryNoteSchema } from '../validators/deliverynote.validator.js';
-import { createDeliveryNote, getDeliveryNotes, getDeliveryNote, deleteDeliveryNote } from '../controllers/deliverynote.controller.js';
+import {
+  createDeliveryNote,
+  getDeliveryNotes,
+  getDeliveryNote,
+  deleteDeliveryNote,
+  signDeliveryNote,
+  getDeliveryNotePdf,
+} from '../controllers/deliverynote.controller.js';
 
 const router = Router();
 
-// Listar albaranes de la empresa con filtros (proyecto, fechas, estado) y paginación
-router.get('/', authMiddleware, isVerified, getDeliveryNotes);
+// Rutas estáticas ANTES de /:id para evitar colisiones en Express
+router.get('/pdf/:id', authMiddleware, isVerified, getDeliveryNotePdf);
 
-// Crear un nuevo albarán (valida si es de tipo 'material' o 'hours')
+router.get('/', authMiddleware, isVerified, getDeliveryNotes);
 router.post('/', authMiddleware, isVerified, validate(createDeliveryNoteSchema), createDeliveryNote);
 
-// Obtener el detalle completo de un albarán por su ID (incluye datos de cliente y proyecto)
-router.get('/:id', authMiddleware, isVerified, getDeliveryNote);
+// Firma: recibe multipart/form-data con campo 'signature'
+router.patch('/:id/sign', authMiddleware, isVerified, uploadField('signature'), signDeliveryNote);
 
-// Eliminar un albarán (solo permitido si no está firmado)
+router.get('/:id', authMiddleware, isVerified, getDeliveryNote);
 router.delete('/:id', authMiddleware, isVerified, deleteDeliveryNote);
 
 export default router;

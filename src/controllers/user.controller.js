@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 import notificationService from '../services/notification.service.js';
 import Company from '../models/Company.js';
+import { uploadToCloudinary } from '../services/storage.service.js';
 
 // Función para generar ambos tokens
 const generateTokens = (userId) => {
@@ -241,16 +242,15 @@ export const uploadLogo = async (req, res, next) => {
       throw AppError.badRequest('No se ha subido ningún archivo o formato no válido');
     }
 
-    // Comprobar que el usuario tiene una compañía
     if (!req.user.company) {
       throw AppError.badRequest('El usuario no tiene una compañía asociada');
     }
 
-    // Construir la URL del logo
-    const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const logoUrl = `${PUBLIC_URL}/uploads/${req.file.filename}`;
+    const { url: logoUrl } = await uploadToCloudinary(req.file.buffer, {
+      folder: 'bildy/logos',
+      publicId: `logo-${req.user.company}`,
+    });
 
-    // Actualizar directamente la Company del usuario
     const updatedCompany = await Company.findByIdAndUpdate(
       req.user.company,
       { logo: logoUrl },

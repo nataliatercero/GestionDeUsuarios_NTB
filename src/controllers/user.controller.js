@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import notificationService from '../services/notification.service.js';
 import Company from '../models/Company.js';
 import { uploadToCloudinary } from '../services/storage.service.js';
+import { sendVerificationEmail, sendInvitationEmail } from '../services/mail.service.js';
 
 // Función para generar ambos tokens
 const generateTokens = (userId) => {
@@ -59,9 +60,12 @@ export const register = async (req, res, next) => {
 
     notificationService.emit('user:registered', newUser);
 
+    // Envío del código de verificación por email (fire-and-forget, no bloquea el registro)
+    sendVerificationEmail(newUser.email, verificationCode).catch(() => {});
+
     res.status(201).json({
       success: true,
-      message: 'Usuario registrado. Código generado.',
+      message: 'Usuario registrado. Revisa tu email para obtener el código de verificación.',
       token: accessToken,
       refreshToken: refreshToken,
       data: { id: newUser._id, email: newUser.email, status: newUser.status }
@@ -394,16 +398,19 @@ export const inviteUser = async (req, res, next) => {
     const companyName = company?.name || 'Compañía';
 
     // Emitir evento con toda la info
-    notificationService.emit('user:invited', { 
+    notificationService.emit('user:invited', {
       guestName: newUser.fullName,
       adminName: req.user.fullName,
       companyName: companyName,
       email: newUser.email
     });
 
+    // Envío del email de invitación (fire-and-forget)
+    sendInvitationEmail(newUser.email, newUser.fullName, companyName, 'Temporal123!').catch(() => {});
+
     res.status(201).json({
       success: true,
-      message: `Invitación enviada. Contraseña temporal: Temporal123!`,
+      message: `Invitación enviada a ${newUser.email}`,
       data: {
         id: newUser._id,
         fullName: newUser.fullName,

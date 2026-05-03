@@ -11,6 +11,8 @@ import deliveryNoteRoutes from './routes/deliverynote.routes.js';
 import path from 'node:path';
 import morganBody from 'morgan-body';
 import { loggerStream } from './utils/handleLogger.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.js';
 
 const app = express();
 
@@ -62,9 +64,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// RUTAS
+// DOCUMENTACIÓN
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Ruta de prueba
+// JSON de la spec (útil para herramientas externas)
+app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
+
+// RUTAS
 app.use('/api/user', userRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/project', projectRoutes);

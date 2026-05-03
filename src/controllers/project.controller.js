@@ -135,7 +135,8 @@ export const restoreProject = async (req, res, next) => {
     if (!project.deleted) throw AppError.badRequest('El proyecto no está archivado');
 
     await Project.restoreById(project._id);
-    res.status(200).json({ success: true, data: project });
+    const restored = await Project.findById(project._id);
+    res.status(200).json({ success: true, data: restored });
   } catch (error) {
     next(error);
   }

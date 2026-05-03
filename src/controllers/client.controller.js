@@ -127,7 +127,8 @@ export const restoreClient = async (req, res, next) => {
     if (!client.deleted) throw AppError.badRequest('El cliente no está archivado');
 
     await Client.restoreById(client._id);
-    res.status(200).json({ success: true, data: client });
+    const restored = await Client.findById(client._id);
+    res.status(200).json({ success: true, data: restored });
   } catch (error) {
     next(error);
   }

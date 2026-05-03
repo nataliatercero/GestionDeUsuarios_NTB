@@ -99,7 +99,6 @@ describe('Client API', () => {
       const admin = await fullOnboarding();
       token = admin.token;
 
-      // Crear 3 clientes para probar paginación y filtros
       await request(app).post('/api/client').set('Authorization', `Bearer ${token}`)
         .send(makeClient({ name: 'Albañilería García S.L.' }));
       await request(app).post('/api/client').set('Authorization', `Bearer ${token}`)
@@ -142,6 +141,16 @@ describe('Client API', () => {
       res.body.data.forEach(c => expect(c.name.toLowerCase()).toContain('garcía'));
     });
 
+    it('200 — un usuario de otra empresa no ve estos clientes', async () => {
+      const otraEmpresa = await fullOnboarding();
+      const res = await request(app)
+        .get('/api/client')
+        .set('Authorization', `Bearer ${otraEmpresa.token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data).toHaveLength(0);
+    });
+
     it('401 — sin token no puede listar clientes', async () => {
       const res = await request(app).get('/api/client');
       expect(res.statusCode).toBe(401);
@@ -177,6 +186,15 @@ describe('Client API', () => {
       const res = await request(app)
         .get('/api/client/000000000000000000000000')
         .set('Authorization', `Bearer ${token}`);
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('404 — un usuario de otra empresa no puede ver este cliente', async () => {
+      const otraEmpresa = await fullOnboarding();
+      const res = await request(app)
+        .get(`/api/client/${clientId}`)
+        .set('Authorization', `Bearer ${otraEmpresa.token}`);
 
       expect(res.statusCode).toBe(404);
     });
@@ -236,6 +254,14 @@ describe('Client API', () => {
 
       expect(res.statusCode).toBe(404);
     });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app)
+        .put(`/api/client/${clientId}`)
+        .send({ name: 'Nombre válido' });
+
+      expect(res.statusCode).toBe(401);
+    });
   });
 
   // ── ELIMINAR Y ARCHIVAR ────────────────────────────────────────────────────
@@ -261,7 +287,6 @@ describe('Client API', () => {
 
       expect(res.statusCode).toBe(200);
 
-      // Ya no aparece en la lista principal
       const lista = await request(app)
         .get('/api/client')
         .set('Authorization', `Bearer ${token}`);
@@ -274,6 +299,11 @@ describe('Client API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(200);
+
+      const check = await request(app)
+        .get(`/api/client/${clientId}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(check.statusCode).toBe(404);
     });
 
     it('404 — cliente no encontrado', async () => {
@@ -282,6 +312,11 @@ describe('Client API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).delete(`/api/client/${clientId}`);
+      expect(res.statusCode).toBe(401);
     });
   });
 
@@ -325,6 +360,11 @@ describe('Client API', () => {
       const ids = res.body.data.map(c => c._id);
       expect(ids).not.toContain(clientId);
     });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).get('/api/client/archived');
+      expect(res.statusCode).toBe(401);
+    });
   });
 
   // ── RESTAURAR CLIENTE ──────────────────────────────────────────────────────
@@ -342,7 +382,6 @@ describe('Client API', () => {
         .send(makeClient());
       clientId = res.body.data._id;
 
-      // Archivar primero
       await request(app)
         .delete(`/api/client/${clientId}?soft=true`)
         .set('Authorization', `Bearer ${token}`);
@@ -354,8 +393,8 @@ describe('Client API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(200);
+      expect(res.body.data.deleted).toBeFalsy();
 
-      // Vuelve a aparecer en la lista normal
       const lista = await request(app)
         .get('/api/client')
         .set('Authorization', `Bearer ${token}`);
@@ -364,17 +403,30 @@ describe('Client API', () => {
     });
 
     it('400 — no puede restaurar un cliente que no está archivado', async () => {
-      // Primero lo restauramos
       await request(app)
         .patch(`/api/client/${clientId}/restore`)
         .set('Authorization', `Bearer ${token}`);
 
-      // Intentamos restaurarlo de nuevo (ya no está archivado)
       const res = await request(app)
         .patch(`/api/client/${clientId}/restore`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(400);
+    });
+
+    it('404 — cliente no encontrado', async () => {
+      const res = await request(app)
+        .patch('/api/client/000000000000000000000000/restore')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app)
+        .patch(`/api/client/${clientId}/restore`);
+
+      expect(res.statusCode).toBe(401);
     });
   });
 

@@ -4,7 +4,6 @@ import { fullOnboarding, makeClient, makeProject } from './helpers.js';
 
 describe('Project API', () => {
 
-  // Helpers internos para reducir setup repetitivo
   const createClient = async (token) => {
     const res = await request(app)
       .post('/api/client')
@@ -110,7 +109,6 @@ describe('Project API', () => {
       token = admin.token;
       clientId = await createClient(token);
 
-      // Crear proyectos con diferentes estados para los filtros
       await request(app).post('/api/project').set('Authorization', `Bearer ${token}`)
         .send(makeProject(clientId, { name: 'Reforma Cocina', active: true }));
       await request(app).post('/api/project').set('Authorization', `Bearer ${token}`)
@@ -159,7 +157,6 @@ describe('Project API', () => {
     });
 
     it('200 — filtra por cliente', async () => {
-      // Crear otro cliente con sus proyectos
       const otroClienteId = await createClient(token);
       await request(app).post('/api/project').set('Authorization', `Bearer ${token}`)
         .send(makeProject(otroClienteId, { name: 'Proyecto Otro Cliente' }));
@@ -171,6 +168,16 @@ describe('Project API', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.data).toHaveLength(3);
       res.body.data.forEach(p => expect(p.client._id || p.client).toBe(clientId));
+    });
+
+    it('200 — un usuario de otra empresa no ve estos proyectos', async () => {
+      const otraEmpresa = await fullOnboarding();
+      const res = await request(app)
+        .get('/api/project')
+        .set('Authorization', `Bearer ${otraEmpresa.token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data).toHaveLength(0);
     });
 
     it('401 — sin token devuelve 401', async () => {
@@ -209,6 +216,20 @@ describe('Project API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(404);
+    });
+
+    it('404 — un usuario de otra empresa no puede ver este proyecto', async () => {
+      const otraEmpresa = await fullOnboarding();
+      const res = await request(app)
+        .get(`/api/project/${projectId}`)
+        .set('Authorization', `Bearer ${otraEmpresa.token}`);
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).get(`/api/project/${projectId}`);
+      expect(res.statusCode).toBe(401);
     });
   });
 
@@ -252,9 +273,17 @@ describe('Project API', () => {
       const res = await request(app)
         .put('/api/project/000000000000000000000000')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'X' });
+        .send({ name: 'Nombre válido' });
 
       expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app)
+        .put(`/api/project/${projectId}`)
+        .send({ name: 'Nombre válido' });
+
+      expect(res.statusCode).toBe(401);
     });
   });
 
@@ -288,6 +317,11 @@ describe('Project API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(200);
+
+      const check = await request(app)
+        .get(`/api/project/${projectId}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(check.statusCode).toBe(404);
     });
 
     it('404 — proyecto no encontrado', async () => {
@@ -296,6 +330,11 @@ describe('Project API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).delete(`/api/project/${projectId}`);
+      expect(res.statusCode).toBe(401);
     });
   });
 
@@ -325,6 +364,21 @@ describe('Project API', () => {
       const ids = res.body.data.map(p => p._id);
       expect(ids).toContain(projectId);
     });
+
+    it('200 — el proyecto archivado no aparece en la lista normal', async () => {
+      const res = await request(app)
+        .get('/api/project')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.statusCode).toBe(200);
+      const ids = res.body.data.map(p => p._id);
+      expect(ids).not.toContain(projectId);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).get('/api/project/archived');
+      expect(res.statusCode).toBe(401);
+    });
   });
 
   // ── RESTAURAR PROYECTO ─────────────────────────────────────────────────────
@@ -349,6 +403,7 @@ describe('Project API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(200);
+      expect(res.body.data.deleted).toBeFalsy();
 
       const lista = await request(app).get('/api/project').set('Authorization', `Bearer ${token}`);
       const ids = lista.body.data.map(p => p._id);
@@ -356,17 +411,30 @@ describe('Project API', () => {
     });
 
     it('400 — error al restaurar un proyecto que no está archivado', async () => {
-      // Restaurar primero
       await request(app)
         .patch(`/api/project/${projectId}/restore`)
         .set('Authorization', `Bearer ${token}`);
 
-      // Intentar restaurar de nuevo
       const res = await request(app)
         .patch(`/api/project/${projectId}/restore`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(400);
+    });
+
+    it('404 — proyecto no encontrado', async () => {
+      const res = await request(app)
+        .patch('/api/project/000000000000000000000000/restore')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app)
+        .patch(`/api/project/${projectId}/restore`);
+
+      expect(res.statusCode).toBe(401);
     });
   });
 

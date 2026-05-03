@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 import request from 'supertest';
 import mongoose from 'mongoose';
 
-// Deben declararse ANTES de cualquier import dinámico del código bajo test
 jest.unstable_mockModule('../src/services/storage.service.js', () => ({
   uploadToCloudinary: jest.fn(),
   deleteFromCloudinary: jest.fn(),
@@ -12,28 +11,30 @@ jest.unstable_mockModule('../src/services/pdf.service.js', () => ({
   generateDeliveryNotePdf: jest.fn(),
 }));
 
-// ── Variables pobladas en beforeAll tras registrar los mocks ──────────────────
 let app;
-let fullOnboarding, makeClient, makeProject;
+let fullOnboarding;
 let uploadToCloudinary, generateDeliveryNotePdf;
 
-// Imagen PNG mínima válida (1×1 px) para que multer/sharp no rechacen el buffer
-const FAKE_IMAGE = Buffer.from(
+const FAKE_SIG_URL  = 'https://res.cloudinary.com/test/signatures/sig.webp';
+const FAKE_PDF_URL  = 'https://res.cloudinary.com/test/pdfs/albaran.pdf';
+const FAKE_IMAGE    = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64'
 );
 
-const FAKE_SIG_URL = 'https://res.cloudinary.com/test/signatures/sig.webp';
-const FAKE_PDF_URL = 'https://res.cloudinary.com/test/pdfs/albaran.pdf';
-
 describe('Sign & PDF API', () => {
 
   beforeAll(async () => {
-    // Importar dinámicamente DESPUÉS de haber registrado los mocks
     ({ default: app } = await import('../src/app.js'));
-    ({ fullOnboarding, makeClient, makeProject } = await import('./helpers.js'));
+    ({ fullOnboarding } = await import('./helpers.js'));
     ({ uploadToCloudinary } = await import('../src/services/storage.service.js'));
     ({ generateDeliveryNotePdf } = await import('../src/services/pdf.service.js'));
+  });
+
+  // Limpia el estado de los mocks después de cada test para evitar acumulación
+  afterEach(() => {
+    uploadToCloudinary.mockReset();
+    generateDeliveryNotePdf.mockReset();
   });
 
   // ── Helpers internos ─────────────────────────────────────────────────────────
@@ -62,18 +63,22 @@ describe('Sign & PDF API', () => {
     return res.body.data._id;
   };
 
+  // Implementación determinista según las opciones recibidas (sin acumulación de queue)
+  const setupMocks = () => {
+    uploadToCloudinary.mockImplementation(async (_buffer, opts) => {
+      if (opts?.resourceType === 'raw') return { url: FAKE_PDF_URL, publicId: 'pdf-id' };
+      return { url: FAKE_SIG_URL, publicId: 'sig-id' };
+    });
+    generateDeliveryNotePdf.mockResolvedValue(Buffer.from('%PDF-1.4 fake'));
+  };
+
   // ── PATCH /api/deliverynote/:id/sign ────────────────────────────────────────
   describe('PATCH /api/deliverynote/:id/sign', () => {
     let token;
     let noteId;
 
     beforeEach(async () => {
-      // Mock por defecto: signature primero, PDF después
-      uploadToCloudinary
-        .mockResolvedValueOnce({ url: FAKE_SIG_URL, publicId: 'sig-id' })
-        .mockResolvedValueOnce({ url: FAKE_PDF_URL, publicId: 'pdf-id' });
-      generateDeliveryNotePdf.mockResolvedValue(Buffer.from('%PDF-1.4 fake'));
-
+      setupMocks();
       const admin = await fullOnboarding();
       token = admin.token;
       const clientId = await createClient(token);
@@ -81,7 +86,7 @@ describe('Sign & PDF API', () => {
       noteId = await createNote(token, projectId);
     });
 
-    it('200 — firma el albarán, guarda signatureUrl y pdfUrl', async () => {
+    it('200 — firma el albarán y devuelve signatureUrl y pdfUrl correctos', async () => {
       const res = await request(app)
         .patch(`/api/deliverynote/${noteId}/sign`)
         .set('Authorization', `Bearer ${token}`)
@@ -95,22 +100,24 @@ describe('Sign & PDF API', () => {
       expect(res.body.data.pdfUrl).toBe(FAKE_PDF_URL);
     });
 
-    it('200 — uploadToCloudinary se llama dos veces (firma + PDF)', async () => {
-      uploadToCloudinary.mockClear();
-      uploadToCloudinary
-        .mockResolvedValueOnce({ url: FAKE_SIG_URL, publicId: 'sig-id' })
-        .mockResolvedValueOnce({ url: FAKE_PDF_URL, publicId: 'pdf-id' });
-
+    it('200 — uploadToCloudinary se llama dos veces: firma (image) y PDF (raw)', async () => {
       await request(app)
         .patch(`/api/deliverynote/${noteId}/sign`)
         .set('Authorization', `Bearer ${token}`)
         .attach('signature', FAKE_IMAGE, { filename: 'firma.png', contentType: 'image/png' });
 
       expect(uploadToCloudinary).toHaveBeenCalledTimes(2);
-      // Primera llamada: imagen de firma (resourceType image por defecto)
       expect(uploadToCloudinary.mock.calls[0][1]).toMatchObject({ folder: 'bildy/signatures' });
-      // Segunda llamada: PDF (resourceType raw)
       expect(uploadToCloudinary.mock.calls[1][1]).toMatchObject({ folder: 'bildy/pdfs', resourceType: 'raw' });
+    });
+
+    it('200 — generateDeliveryNotePdf se llama una vez', async () => {
+      await request(app)
+        .patch(`/api/deliverynote/${noteId}/sign`)
+        .set('Authorization', `Bearer ${token}`)
+        .attach('signature', FAKE_IMAGE, { filename: 'firma.png', contentType: 'image/png' });
+
+      expect(generateDeliveryNotePdf).toHaveBeenCalledTimes(1);
     });
 
     it('400 — falla si no se adjunta imagen de firma', async () => {
@@ -157,29 +164,29 @@ describe('Sign & PDF API', () => {
   describe('GET /api/deliverynote/pdf/:id', () => {
     let token;
     let noteId;
+    let signedNoteId;
 
     beforeEach(async () => {
-      uploadToCloudinary
-        .mockResolvedValueOnce({ url: FAKE_SIG_URL, publicId: 'sig-id' })
-        .mockResolvedValueOnce({ url: FAKE_PDF_URL, publicId: 'pdf-id' });
-      generateDeliveryNotePdf.mockResolvedValue(Buffer.from('%PDF-1.4 fake'));
-
+      setupMocks();
       const admin = await fullOnboarding();
       token = admin.token;
       const clientId = await createClient(token);
       const projectId = await createProject(token, clientId);
+
+      // Albarán sin firmar (para el test 400)
       noteId = await createNote(token, projectId);
 
-      // Firmar para que tenga pdfUrl
+      // Albarán firmado (para el test 302)
+      signedNoteId = await createNote(token, projectId);
       await request(app)
-        .patch(`/api/deliverynote/${noteId}/sign`)
+        .patch(`/api/deliverynote/${signedNoteId}/sign`)
         .set('Authorization', `Bearer ${token}`)
         .attach('signature', FAKE_IMAGE, { filename: 'firma.png', contentType: 'image/png' });
     });
 
     it('302 — redirige a la URL del PDF en Cloudinary', async () => {
       const res = await request(app)
-        .get(`/api/deliverynote/pdf/${noteId}`)
+        .get(`/api/deliverynote/pdf/${signedNoteId}`)
         .set('Authorization', `Bearer ${token}`)
         .redirects(0);
 
@@ -187,13 +194,9 @@ describe('Sign & PDF API', () => {
       expect(res.headers.location).toBe(FAKE_PDF_URL);
     });
 
-    it('400 — albarán sin PDF (no firmado)', async () => {
-      const clientId = await createClient(token);
-      const projectId = await createProject(token, clientId);
-      const unsignedNoteId = await createNote(token, projectId);
-
+    it('400 — albarán sin PDF (aún no firmado)', async () => {
       const res = await request(app)
-        .get(`/api/deliverynote/pdf/${unsignedNoteId}`)
+        .get(`/api/deliverynote/pdf/${noteId}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(400);
@@ -208,7 +211,7 @@ describe('Sign & PDF API', () => {
     });
 
     it('401 — sin token devuelve 401', async () => {
-      const res = await request(app).get(`/api/deliverynote/pdf/${noteId}`);
+      const res = await request(app).get(`/api/deliverynote/pdf/${signedNoteId}`);
       expect(res.statusCode).toBe(401);
     });
   });

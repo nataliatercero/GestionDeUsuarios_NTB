@@ -42,7 +42,7 @@ describe('DeliveryNote API', () => {
     ...overrides,
   });
 
-  // ── CREAR ALBARÁN ──────────────────────────────────────────────────────────
+  // CREAR ALBARÁN 
   describe('POST /api/deliverynote', () => {
     let token;
     let projectId;
@@ -144,7 +144,7 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // ── LISTAR ALBARANES ───────────────────────────────────────────────────────
+  // LISTAR ALBARANES
   describe('GET /api/deliverynote', () => {
     let token;
     let projectId;
@@ -227,7 +227,7 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // ── OBTENER ALBARÁN ────────────────────────────────────────────────────────
+  // OBTENER ALBARÁN
   describe('GET /api/deliverynote/:id', () => {
     let token;
     let noteId;
@@ -276,7 +276,7 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // ── ELIMINAR ALBARÁN ───────────────────────────────────────────────────────
+  // ELIMINAR ALBARÁN
   describe('DELETE /api/deliverynote/:id', () => {
     let token;
     let noteId;
@@ -304,7 +304,7 @@ describe('DeliveryNote API', () => {
     });
 
     it('400 — no puede eliminar un albarán firmado', async () => {
-      // Marcar como firmado directamente en la BD (el endpoint de firma es del bloque 2)
+      // Marcar como firmado directamente en la BD
       await mongoose.connection.collection('deliverynotes').updateOne(
         { _id: new mongoose.Types.ObjectId(noteId) },
         { $set: { signed: true, signedAt: new Date() } }

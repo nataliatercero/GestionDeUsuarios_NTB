@@ -1,4 +1,5 @@
 import { AppError } from '../utils/AppError.js';
+import { notifySlack5xxError } from '../utils/handleLogger.js';
 
 // Ruta no encontrada
 
@@ -14,6 +15,10 @@ export const errorHandler = (err, req, res, next) => {
   // Si el error no está en mi clase AppError, lo convertirlo en uno
   if (!(error instanceof AppError)) {
     error = AppError.internal(err.message || 'Error inesperado');
+  }
+
+  if (error.statusCode >= 500) {
+    notifySlack5xxError(req, error);
   }
 
   // Respuesta única y estandarizada

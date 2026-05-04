@@ -128,7 +128,7 @@ export const getArchivedProjects = async (req, res, next) => {
 export const restoreProject = async (req, res, next) => {
   try {
     const companyId = req.user.company;
-    // Se usa withDeleted: true para encontrar el documento en la papelera
+    // withDeleted: true para encontrar el documento en la papelera
     const project = await Project.findOne({ _id: req.params.id, company: companyId }).setOptions({ withDeleted: true });
     
     if (!project) throw AppError.notFound('Proyecto');

@@ -23,7 +23,6 @@ const options = {
         },
       },
       schemas: {
-        // ── Errores ──────────────────────────────────────────────────────────
         Error: {
           type: 'object',
           properties: {
@@ -32,7 +31,6 @@ const options = {
             code:    { type: 'string',  example: 'NOT_FOUND' },
           },
         },
-        // ── Paginación ───────────────────────────────────────────────────────
         Pagination: {
           type: 'object',
           properties: {
@@ -41,7 +39,6 @@ const options = {
             currentPage: { type: 'integer', example: 1  },
           },
         },
-        // ── Address ──────────────────────────────────────────────────────────
         Address: {
           type: 'object',
           properties: {
@@ -52,7 +49,6 @@ const options = {
             province: { type: 'string', example: 'Madrid' },
           },
         },
-        // ── User ─────────────────────────────────────────────────────────────
         User: {
           type: 'object',
           properties: {
@@ -66,7 +62,6 @@ const options = {
             company:   { type: 'string', example: '664f1a2b3c4d5e6f7a8b9c0e' },
           },
         },
-        // ── Company ──────────────────────────────────────────────────────────
         Company: {
           type: 'object',
           properties: {
@@ -78,7 +73,6 @@ const options = {
             isFreelance: { type: 'boolean', example: false },
           },
         },
-        // ── Client ───────────────────────────────────────────────────────────
         Client: {
           type: 'object',
           properties: {
@@ -101,7 +95,6 @@ const options = {
             address: { $ref: '#/components/schemas/Address' },
           },
         },
-        // ── Project ──────────────────────────────────────────────────────────
         Project: {
           type: 'object',
           properties: {
@@ -128,7 +121,6 @@ const options = {
             active:      { type: 'boolean', default: true },
           },
         },
-        // ── DeliveryNote ─────────────────────────────────────────────────────
         Worker: {
           type: 'object',
           required: ['name', 'hours'],
@@ -208,9 +200,9 @@ const options = {
         },
       },
     },
-    // ── Rutas ─────────────────────────────────────────────────────────────────
+    // Rutas
     paths: {
-      // ── USER ──────────────────────────────────────────────────────────────
+      // USER
       '/api/user/register': {
         post: {
           tags: ['Usuarios'],
@@ -467,7 +459,7 @@ const options = {
         },
       },
 
-      // ── CLIENT ────────────────────────────────────────────────────────────
+      // CLIENT
       '/api/client': {
         get: {
           tags: ['Clientes'],
@@ -564,7 +556,7 @@ const options = {
         },
       },
 
-      // ── PROJECT ───────────────────────────────────────────────────────────
+      // PROJECT
       '/api/project': {
         get: {
           tags: ['Proyectos'],
@@ -664,7 +656,7 @@ const options = {
         },
       },
 
-      // ── DELIVERYNOTE ──────────────────────────────────────────────────────
+      // DELIVERYNOTE
       '/api/deliverynote': {
         get: {
           tags: ['Albaranes'],

@@ -1,11 +1,9 @@
 import request from 'supertest';
 import app from '../src/app.js';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
-/**
- * Registra un usuario y devuelve { token, refreshToken, userId }
- */
+// Registra un usuario y devuelve { token, refreshToken, userId }
 const registerUser = async (overrides = {}) => {
   const payload = {
     email: `user_${Date.now()}_${Math.random().toString(36).slice(2)}@test.com`,
@@ -24,10 +22,7 @@ const registerUser = async (overrides = {}) => {
   };
 };
 
-/**
- * Devuelve el código de verificación leyendo el usuario desde la DB
- * (en tests usamos mongoose directamente)
- */
+// Devuelve el código de verificación leyendo el usuario desde la DB (en tests usamos mongoose directamente)
 const getVerificationCode = async (userId) => {
   const mongoose = (await import('mongoose')).default;
   const doc = await mongoose.connection
@@ -36,9 +31,7 @@ const getVerificationCode = async (userId) => {
   return doc?.verificationCode;
 };
 
-/**
- * Registra, verifica el email y devuelve los datos del usuario
- */
+// Registra, verifica el email y devuelve los datos del usuario
 const registerAndVerify = async (overrides = {}) => {
   const user = await registerUser(overrides);
   const code = await getVerificationCode(user.userId);
@@ -49,9 +42,7 @@ const registerAndVerify = async (overrides = {}) => {
   return user;
 };
 
-/**
- * Registra, verifica, completa el perfil y crea empresa. Devuelve todo.
- */
+// Registra, verifica, completa el perfil y crea empresa. Devuelve todo.
 const fullOnboarding = async (overrides = {}) => {
   const user = await registerAndVerify(overrides);
 
@@ -87,10 +78,9 @@ const fullOnboarding = async (overrides = {}) => {
   return { ...user, me: meRes.body.data };
 };
 
-// ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('User API — Práctica Intermedia', () => {
-  // ── REGISTRO ──────────────────────────────────────────────────────────────
+  // REGISTRO
   describe('POST /api/user/register', () => {
     it('201 — registra un usuario con email y password válidos', async () => {
       const { statusCode, body } = await registerUser();
@@ -144,7 +134,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── LOGIN ─────────────────────────────────────────────────────────────────
+  // LOGIN
   describe('POST /api/user/login', () => {
     it('200 — login correcto devuelve tokens', async () => {
       const { email, password } = await registerUser();
@@ -185,7 +175,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── VERIFICACIÓN DE EMAIL ─────────────────────────────────────────────────
+  // VERIFICACIÓN DE EMAIL 
   describe('PUT /api/user/validation', () => {
     it('200 — verifica email con código correcto', async () => {
       const user = await registerUser();
@@ -267,7 +257,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── ONBOARDING PERSONAL ───────────────────────────────────────────────────
+  // ONBOARDING PERSONAL
   describe('PUT /api/user/register (perfil personal)', () => {
     it('200 — actualiza nombre, apellido y NIF', async () => {
       const user = await registerAndVerify();
@@ -326,7 +316,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── PERFIL ────────────────────────────────────────────────────────────────
+  // PERFIL
   describe('GET /api/user/me', () => {
     it('200 — devuelve el perfil del usuario autenticado', async () => {
       const user = await registerAndVerify();
@@ -352,7 +342,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── ONBOARDING EMPRESA ────────────────────────────────────────────────────
+  // ONBOARDING EMPRESA
   describe('PATCH /api/user/company', () => {
     it('201 — admin puede crear empresa', async () => {
       const user = await registerAndVerify();
@@ -492,7 +482,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── CAMBIO DE CONTRASEÑA ──────────────────────────────────────────────────
+  // CAMBIO DE CONTRASEÑA 
   describe('PUT /api/user/password', () => {
     it('200 — cambia la contraseña correctamente', async () => {
       const user = await registerAndVerify();
@@ -538,7 +528,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── REFRESH TOKEN ─────────────────────────────────────────────────────────
+  // REFRESH TOKEN
   describe('POST /api/user/refresh', () => {
     it('200 — devuelve nuevos tokens con refresh token válido', async () => {
       const user = await registerUser();
@@ -582,7 +572,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── LOGOUT ────────────────────────────────────────────────────────────────
+  // LOGOUT 
   describe('POST /api/user/logout', () => {
     it('200 — cierra sesión correctamente', async () => {
       const user = await registerUser();
@@ -610,7 +600,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── BORRADO DE USUARIO ────────────────────────────────────────────────────
+  // BORRADO DE USUARIO
   describe('DELETE /api/user', () => {
     it('200 — soft delete desactiva al usuario', async () => {
       const user = await registerAndVerify();
@@ -638,7 +628,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── INVITAR USUARIOS (Admin) ──────────────────────────────────────────────
+  // INVITAR USUARIOS (Admin)
   describe('POST /api/user/invite', () => {
     it('201 — admin puede invitar a un usuario nuevo', async () => {
       const admin = await fullOnboarding();
@@ -722,7 +712,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── PAPELERA (Admin) ──────────────────────────────────────────────────────
+  // PAPELERA (Admin)
   describe('GET /api/user/trash', () => {
     it('200 — admin puede ver la papelera', async () => {
       const admin = await fullOnboarding();
@@ -766,7 +756,7 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── HEALTH CHECK ──────────────────────────────────────────────────────────
+  // HEALTH CHECK
   describe('GET /health', () => {
     it('200 — responde con estado ok y db connected', async () => {
       const res = await request(app).get('/health');

@@ -47,10 +47,10 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(sanitizeBody); 
 app.use(limitStringLength(5000)); // Limitamos a 5000 caracteres por seguridad
 
-// LOGGER PARA SLACK
+// LOGGER DE PETICIONES (errores 4XX/5XX en consola - los 5XX también van a Slack vía error-handler)
 morganBody(app, {
   noColors: true,
-  skip: (req, res) => res.statusCode < 400, // Solo errores
+  skip: (req, res) => res.statusCode < 400,
   stream: loggerStream
 });
 
@@ -67,7 +67,7 @@ app.get('/health', (req, res) => {
 // DOCUMENTACIÓN
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// JSON de la spec (útil para herramientas externas)
+// JSON de la spec 
 app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
 
 // RUTAS

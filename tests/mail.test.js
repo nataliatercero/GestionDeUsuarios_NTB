@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
 
-// Mockear ANTES de cualquier import dinámico del código bajo test
+// Mockear ANTES
 jest.unstable_mockModule('../src/services/mail.service.js', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendInvitationEmail:   jest.fn().mockResolvedValue(undefined),
@@ -25,7 +25,7 @@ describe('Mail Service', () => {
     sendInvitationEmail.mockClear();
   });
 
-  // ── EMAIL DE VERIFICACIÓN (registro) ─────────────────────────────────────────
+  // EMAIL DE VERIFICACIÓN (registro)
   describe('sendVerificationEmail — POST /api/user/register', () => {
 
     it('se llama con el email y un código de 6 dígitos al registrarse', async () => {
@@ -70,7 +70,7 @@ describe('Mail Service', () => {
     });
   });
 
-  // ── EMAIL DE INVITACIÓN ────────────────────────────────────────────────────────
+  // EMAIL DE INVITACIÓN
   describe('sendInvitationEmail — POST /api/user/invite', () => {
 
     let adminToken;

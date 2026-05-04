@@ -3,7 +3,7 @@ import app from '../src/app.js';
 
 describe('Swagger Documentation', () => {
 
-  // ── UI HTML ───────────────────────────────────────────────────────────────
+  // UI HTML
   describe('GET /api-docs', () => {
 
     it('200 — sirve la interfaz Swagger UI', async () => {
@@ -24,7 +24,7 @@ describe('Swagger Documentation', () => {
     });
   });
 
-  // ── SPEC JSON ─────────────────────────────────────────────────────────────
+  // SPEC JSON
   describe('GET /api-docs.json', () => {
 
     let spec;
@@ -40,7 +40,7 @@ describe('Swagger Documentation', () => {
       expect(res.headers['content-type']).toMatch(/json/);
     });
 
-    // ── Metadatos generales ─────────────────────────────────────────────────
+    // Metadatos general
     it('tiene openapi 3.0.x', () => {
       expect(spec.openapi).toMatch(/^3\.0\./);
     });
@@ -50,7 +50,7 @@ describe('Swagger Documentation', () => {
       expect(spec.info.version).toBeDefined();
     });
 
-    // ── Seguridad ───────────────────────────────────────────────────────────
+    // Seguridad
     it('define el esquema de seguridad bearerAuth', () => {
       const schemes = spec.components?.securitySchemes;
       expect(schemes).toBeDefined();
@@ -59,7 +59,7 @@ describe('Swagger Documentation', () => {
       expect(schemes.bearerAuth.scheme).toBe('bearer');
     });
 
-    // ── Schemas ─────────────────────────────────────────────────────────────
+    // Schemas
     const expectedSchemas = [
       'User', 'Company', 'Client', 'ClientInput',
       'Project', 'ProjectInput',
@@ -73,7 +73,7 @@ describe('Swagger Documentation', () => {
       });
     });
 
-    // ── Respuestas reutilizables ────────────────────────────────────────────
+    // Respuestas reutilizables
     const expectedResponses = ['Unauthorized', 'NotFound', 'BadRequest', 'Conflict'];
 
     expectedResponses.forEach(name => {
@@ -82,7 +82,7 @@ describe('Swagger Documentation', () => {
       });
     });
 
-    // ── Rutas documentadas ──────────────────────────────────────────────────
+    // Rutas documentadas
     const expectedPaths = [
       // Usuarios
       '/api/user/register',
@@ -125,7 +125,7 @@ describe('Swagger Documentation', () => {
       expect(Object.keys(spec.paths)).toHaveLength(expectedPaths.length);
     });
 
-    // ── Métodos HTTP clave ──────────────────────────────────────────────────
+    // Métodos HTTP 
     it('POST /api/user/register tiene requestBody y respuesta 201', () => {
       const op = spec.paths['/api/user/register']?.post;
       expect(op).toBeDefined();

@@ -25,7 +25,7 @@ router.get('/:id', authMiddleware, isVerified, getClient);
 // Actualizar un cliente existente (validación parcial permitida)
 router.put('/:id', authMiddleware, isVerified, validate(updateClientSchema), updateClient);
 
-// Eliminar un cliente (soporta ?soft=true para archivar)
+// Eliminar un cliente 
 router.delete('/:id', authMiddleware, isVerified, deleteClient);
 
 export default router;

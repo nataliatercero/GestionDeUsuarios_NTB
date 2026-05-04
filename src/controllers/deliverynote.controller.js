@@ -5,6 +5,7 @@ import { AppError } from '../utils/AppError.js';
 import { uploadToCloudinary } from '../services/storage.service.js';
 import { generateDeliveryNotePdf } from '../services/pdf.service.js';
 import { getIO } from '../sockets/index.js';
+import { sendSlackNotification } from '../utils/handleLogger.js';
 
 // Crear un nuevo albarán vinculado a un proyecto y su cliente
 export const createDeliveryNote = async (req, res, next) => {
@@ -157,6 +158,8 @@ export const signDeliveryNote = async (req, res, next) => {
       pdfUrl,
       signedAt: signed.signedAt,
     });
+
+    sendSlackNotification(`📝 Albarán *${signed._id}* firmado. PDF: ${pdfUrl}`);
 
     res.status(200).json({ success: true, data: signed });
   } catch (error) {

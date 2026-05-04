@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../src/app.js';
 import mongoose from 'mongoose';
 
-// ─── Helpers de usuario (misma lógica que intermedia.test.js) ────────────────
+// Helpers de usuario (misma lógica que intermedia.test.js) 
 
 export const registerUser = async (overrides = {}) => {
   const payload = {
@@ -62,7 +62,7 @@ export const fullOnboarding = async () => {
   return { ...user, me: meRes.body.data };
 };
 
-// ─── Factories de datos ───────────────────────────────────────────────────────
+// Factories de datos 
 
 // CIF de 9 caracteres: letra + 8 dígitos aleatorios
 export const makeClient = (overrides = {}) => ({

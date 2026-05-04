@@ -37,7 +37,7 @@ describe('Sign & PDF API', () => {
     generateDeliveryNotePdf.mockReset();
   });
 
-  // ── Helpers internos ─────────────────────────────────────────────────────────
+  // Helpers internos
 
   const createClient = async (token) => {
     const res = await request(app)
@@ -72,7 +72,7 @@ describe('Sign & PDF API', () => {
     generateDeliveryNotePdf.mockResolvedValue(Buffer.from('%PDF-1.4 fake'));
   };
 
-  // ── PATCH /api/deliverynote/:id/sign ────────────────────────────────────────
+  // PATCH /api/deliverynote/:id/sign 
   describe('PATCH /api/deliverynote/:id/sign', () => {
     let token;
     let noteId;
@@ -160,7 +160,7 @@ describe('Sign & PDF API', () => {
     });
   });
 
-  // ── GET /api/deliverynote/pdf/:id ────────────────────────────────────────────
+  // GET /api/deliverynote/pdf/:id
   describe('GET /api/deliverynote/pdf/:id', () => {
     let token;
     let noteId;

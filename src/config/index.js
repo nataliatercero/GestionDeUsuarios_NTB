@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Conectar a la base de datos de MongoDb (Atlas)
+// Conectar a la base de datos de MongoDb
 
 export const dbConnect = async () => {
   try {

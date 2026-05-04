@@ -27,21 +27,7 @@ export const limitStringLength = (maxLength = 10000) => (req, res, next) => {
       }
     }
   };
-  
-  if (req.body) truncate(req.body);
-  next();
-};
 
-// Filtra el body para permitir solo campos específicos
-export const allowedFields = (...fields) => (req, res, next) => {
-  if (req.body) {
-    const filtered = {};
-    for (const field of fields) {
-      if (req.body[field] !== undefined) {
-        filtered[field] = req.body[field];
-      }
-    }
-    req.body = filtered;
-  }
+  if (req.body) truncate(req.body);
   next();
 };

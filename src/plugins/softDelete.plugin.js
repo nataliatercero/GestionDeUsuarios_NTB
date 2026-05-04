@@ -26,22 +26,6 @@ export const softDeletePlugin = (schema) => {
   schema.pre('findOneAndUpdate', excludeDeleted);
   schema.pre('countDocuments', excludeDeleted);
   
-  // Método de instancia: soft delete
-  schema.methods.softDelete = async function(deletedBy = null) {
-    this.deleted = true;
-    this.deletedAt = new Date();
-    this.deletedBy = deletedBy;
-    return this.save();
-  };
-  
-  // Método de instancia: restaurar
-  schema.methods.restore = async function() {
-    this.deleted = false;
-    this.deletedAt = null;
-    this.deletedBy = null;
-    return this.save();
-  };
-  
   // Método estático: soft delete por ID
   schema.statics.softDeleteById = async function(id, deletedBy = null) {
     return this.findByIdAndUpdate(
@@ -66,11 +50,6 @@ export const softDeletePlugin = (schema) => {
       },
       { new: true }
     ).setOptions({ withDeleted: true });
-  };
-  
-  // Método estático: buscar incluyendo eliminados
-  schema.statics.findWithDeleted = function(filter = {}) {
-    return this.find(filter).setOptions({ withDeleted: true });
   };
   
   // Método estático: buscar solo eliminados

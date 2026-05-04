@@ -480,6 +480,25 @@ describe('User API — Práctica Intermedia', () => {
 
       expect(res.statusCode).toBe(401);
     });
+
+    it('201 — autónomo crea empresa usando su propio NIF como CIF', async () => {
+      const user = await registerAndVerify();
+
+      await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ name: 'Carlos', lastName: 'Autónomo', nif: '87654321Z' });
+
+      const res = await request(app)
+        .patch('/api/user/company')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ isFreelance: true });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.company.cif).toBe('87654321Z');
+      expect(res.body.data.company.isFreelance).toBe(true);
+      expect(res.body.data.userRole).toBe('admin');
+    });
   });
 
   // CAMBIO DE CONTRASEÑA 
@@ -756,6 +775,49 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
+  // ── GET /api/user (ruta exacta del guion) ────────────────────────────────────
+  describe('GET /api/user', () => {
+    it('200 — devuelve el perfil con company populada', async () => {
+      const admin = await fullOnboarding();
+
+      const res = await request(app)
+        .get('/api/user')
+        .set('Authorization', `Bearer ${admin.token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.email).toBe(admin.email);
+      expect(typeof res.body.data.company).toBe('object');
+      expect(res.body.data.fullName).toBeDefined();
+    });
+
+    it('200 — el virtual fullName aparece en la respuesta', async () => {
+      const user = await registerAndVerify();
+      await request(app)
+        .put('/api/user/register')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ name: 'Ana', lastName: 'López', nif: '87654321A' });
+
+      const res = await request(app)
+        .get('/api/user')
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.fullName).toBe('Ana López');
+    });
+
+    it('401 — sin token devuelve 401', async () => {
+      const res = await request(app).get('/api/user');
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('401 — token inválido devuelve 401', async () => {
+      const res = await request(app)
+        .get('/api/user')
+        .set('Authorization', 'Bearer token-falso');
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
   // HEALTH CHECK
   describe('GET /health', () => {
     it('200 — responde con estado ok y db connected', async () => {
@@ -766,6 +828,19 @@ describe('User API — Práctica Intermedia', () => {
       expect(res.body.db).toBe('connected');
       expect(res.body.uptime).toBeDefined();
       expect(res.body.timestamp).toBeDefined();
+    });
+  });
+
+  // ── RUTAS NO REGISTRADAS ──────────────────────────────────────────────────────
+  describe('Rutas no encontradas', () => {
+    it('404 — ruta inexistente devuelve 404', async () => {
+      const res = await request(app).get('/api/ruta-inexistente');
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('404 — método no registrado devuelve 404', async () => {
+      const res = await request(app).delete('/api/ruta-que-no-existe');
+      expect(res.statusCode).toBe(404);
     });
   });
 });

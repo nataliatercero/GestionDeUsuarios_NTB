@@ -1,0 +1,846 @@
+### =============================================================
+### PRÁCTICA FINAL — BildyApp API
+### REST Client (VS Code) — ejecuta en orden o por secciones
+### =============================================================
+
+### --- VARIABLES GLOBALES ---
+@baseUrl = http://localhost:3000/api
+
+# Capturadas automáticamente tras login
+@token         = {{login.response.body.token}}
+@refreshToken  = {{login.response.body.refreshToken}}
+
+# Rellena manualmente tras crear los recursos (copia el _id de la respuesta)
+@clientId      = PEGA_AQUI_EL_ID_DEL_CLIENTE
+@projectId     = PEGA_AQUI_EL_ID_DEL_PROYECTO
+@noteId        = PEGA_AQUI_EL_ID_DEL_ALBARAN
+
+# Código de verificación que llega al email (o lo ves en consola)
+@verificationCode = 000000
+
+
+### =============================================================
+### SECCIÓN 0 — HEALTH CHECK (T11)
+### =============================================================
+
+### 0.1 Health check — servidor + MongoDB + uptime
+GET http://localhost:3000/health
+
+
+### =============================================================
+### SECCIÓN 1 — USUARIOS (Práctica Intermedia, base obligatoria)
+### =============================================================
+
+### 1.1 Registro (201 Created)
+# @name register
+POST {{baseUrl}}/user/register
+Content-Type: application/json
+
+{
+  "email": "bildy_admin@test.com",
+  "password": "Bildy2026!"
+}
+
+###
+
+### 1.2 Registro inválido — password corta (400 Bad Request)
+POST {{baseUrl}}/user/register
+Content-Type: application/json
+
+{
+  "email": "no-es-email",
+  "password": "123"
+}
+
+###
+
+### 1.3 Registro duplicado (409 Conflict)
+POST {{baseUrl}}/user/register
+Content-Type: application/json
+
+{
+  "email": "bildy_admin@test.com",
+  "password": "Bildy2026!"
+}
+
+###
+
+### 1.4 Validar email con código correcto (200 OK)
+PUT {{baseUrl}}/user/validation
+Authorization: Bearer {{register.response.body.token}}
+Content-Type: application/json
+
+{
+  "code": "{{verificationCode}}"
+}
+
+###
+
+### 1.5 Validar email con código incorrecto (400)
+PUT {{baseUrl}}/user/validation
+Authorization: Bearer {{register.response.body.token}}
+Content-Type: application/json
+
+{
+  "code": "000000"
+}
+
+###
+
+### 1.6 Login correcto (200 OK — captura token automáticamente)
+# @name login
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "bildy_admin@test.com",
+  "password": "Bildy2026!"
+}
+
+###
+
+### 1.7 Login incorrecto — contraseña errónea (401)
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "bildy_admin@test.com",
+  "password": "WrongPassword!"
+}
+
+###
+
+### 1.8 Onboarding personal
+PUT {{baseUrl}}/user/register
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Admin",
+  "lastName": "BildyApp",
+  "nif": "12345678Z"
+}
+
+###
+
+### 1.9 Onboarding empresa — crear nueva compañía (admin/owner)
+PATCH {{baseUrl}}/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isFreelance": false,
+  "name": "BildyApp Solutions S.L.",
+  "cif": "B12345678",
+  "address": {
+    "street": "Calle de la Innovación",
+    "number": "42",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 1.10 Onboarding empresa — autónomo (isFreelance: true)
+PATCH {{baseUrl}}/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isFreelance": true
+}
+
+###
+
+### 1.11 Subir logo de compañía (multipart)
+PATCH {{baseUrl}}/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
+
+< ./mologo.png
+--boundary--
+
+###
+
+### 1.12 Obtener perfil del usuario autenticado (con populate)
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
+###
+
+### 1.13 Acceso sin token (401)
+GET {{baseUrl}}/user/me
+
+###
+
+### 1.14 Refresh token
+POST {{baseUrl}}/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### 1.15 Logout (invalida refreshToken)
+POST {{baseUrl}}/user/logout
+Authorization: Bearer {{token}}
+
+###
+
+### 1.16 Refresh tras logout — debe fallar (401)
+POST {{baseUrl}}/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### 1.17 Soft delete del usuario autenticado
+DELETE {{baseUrl}}/user?soft=true
+Authorization: Bearer {{token}}
+
+###
+
+### 1.18 Hard delete del usuario autenticado
+DELETE {{baseUrl}}/user?soft=false
+Authorization: Bearer {{token}}
+
+###
+
+### 1.19 Inyección NoSQL — debe ser sanitizada (400 / 401)
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": { "$gt": "" },
+  "password": "cualquiera"
+}
+
+
+### =============================================================
+### SECCIÓN 2 — CLIENTES (1 punto)
+### =============================================================
+
+### 2.1 Crear cliente — éxito (201 Created)
+# @name createClient
+POST {{baseUrl}}/client
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Constructora García S.L.",
+  "cif": "B98765432",
+  "email": "garcia@constructora.es",
+  "phone": "911234567",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "1",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 2.2 Crear cliente — CIF duplicado en la misma compañía (409 Conflict)
+POST {{baseUrl}}/client
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Otra García S.L.",
+  "cif": "B98765432",
+  "email": "otra@constructora.es",
+  "phone": "912222222",
+  "address": {
+    "street": "Calle Menor",
+    "number": "2",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 2.3 Crear cliente — datos inválidos (400 Bad Request)
+POST {{baseUrl}}/client
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "cif": "no-es-un-cif"
+}
+
+###
+
+### 2.4 Listar todos los clientes (paginación por defecto)
+GET {{baseUrl}}/client
+Authorization: Bearer {{token}}
+
+###
+
+### 2.5 Listar clientes — paginación explícita
+GET {{baseUrl}}/client?page=1&limit=5
+Authorization: Bearer {{token}}
+
+###
+
+### 2.6 Listar clientes — filtro por nombre (búsqueda parcial)
+GET {{baseUrl}}/client?name=García
+Authorization: Bearer {{token}}
+
+###
+
+### 2.7 Listar clientes — ordenación por fecha de creación descendente
+GET {{baseUrl}}/client?sort=-createdAt
+Authorization: Bearer {{token}}
+
+###
+
+### 2.8 Obtener cliente concreto por ID
+GET {{baseUrl}}/client/{{clientId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 2.9 Obtener cliente con ID inexistente (404 Not Found)
+GET {{baseUrl}}/client/000000000000000000000000
+Authorization: Bearer {{token}}
+
+###
+
+### 2.10 Actualizar cliente (PUT)
+PUT {{baseUrl}}/client/{{clientId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Constructora García (Actualizada) S.L.",
+  "phone": "910000001",
+  "address": {
+    "street": "Calle Mayor Actualizada",
+    "number": "10",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 2.11 Borrar cliente — soft delete (?soft=true)
+DELETE {{baseUrl}}/client/{{clientId}}?soft=true
+Authorization: Bearer {{token}}
+
+###
+
+### 2.12 Listar clientes archivados (soft deleted)
+GET {{baseUrl}}/client/archived
+Authorization: Bearer {{token}}
+
+###
+
+### 2.13 Restaurar cliente archivado
+PATCH {{baseUrl}}/client/{{clientId}}/restore
+Authorization: Bearer {{token}}
+
+###
+
+### 2.14 Crear segundo cliente para pruebas de hard delete
+# @name createClient2
+POST {{baseUrl}}/client
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Carpintería López",
+  "cif": "A11223344",
+  "email": "lopez@carpinteria.es",
+  "phone": "933456789",
+  "address": {
+    "street": "Avenida Industrial",
+    "number": "5",
+    "postal": "08001",
+    "city": "Barcelona",
+    "province": "Barcelona"
+  }
+}
+
+###
+
+### 2.15 Borrar cliente — hard delete (?soft=false)
+DELETE {{baseUrl}}/client/{{clientId}}?soft=false
+Authorization: Bearer {{token}}
+
+
+### =============================================================
+### SECCIÓN 3 — PROYECTOS (1,5 puntos)
+### =============================================================
+
+### 3.1 Crear proyecto — éxito (201 Created)
+# @name createProject
+POST {{baseUrl}}/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Reforma Oficinas Centro",
+  "projectCode": "PRJ-2025-001",
+  "client": "{{clientId}}",
+  "address": {
+    "street": "Calle Gran Vía",
+    "number": "55",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  },
+  "email": "obra@reformaoficinas.es",
+  "notes": "Proyecto de reforma interior completa"
+}
+
+###
+
+### 3.2 Crear proyecto — código duplicado en la misma compañía (409 Conflict)
+POST {{baseUrl}}/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Otro Proyecto",
+  "projectCode": "PRJ-2025-001",
+  "client": "{{clientId}}",
+  "address": {
+    "street": "Otra Calle",
+    "number": "1",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+
+### 3.3 Crear proyecto — cliente inexistente (404)
+POST {{baseUrl}}/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Proyecto Huérfano",
+  "projectCode": "PRJ-ORFAN-001",
+  "client": "000000000000000000000000",
+  "address": {
+    "street": "Calle Inventada",
+    "number": "0",
+    "postal": "00000",
+    "city": "Ciudad",
+    "province": "Provincia"
+  }
+}
+
+###
+
+### 3.4 Crear proyecto — datos inválidos (400)
+POST {{baseUrl}}/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": ""
+}
+
+###
+
+### 3.5 Listar todos los proyectos (paginación por defecto)
+GET {{baseUrl}}/project
+Authorization: Bearer {{token}}
+
+###
+
+### 3.6 Listar proyectos — paginación explícita
+GET {{baseUrl}}/project?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+### 3.7 Listar proyectos — filtro por cliente
+GET {{baseUrl}}/project?client={{clientId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 3.8 Listar proyectos — filtro por nombre
+GET {{baseUrl}}/project?name=Reforma
+Authorization: Bearer {{token}}
+
+###
+
+### 3.9 Listar proyectos — solo activos
+GET {{baseUrl}}/project?active=true
+Authorization: Bearer {{token}}
+
+###
+
+### 3.10 Listar proyectos — ordenación descendente por fecha
+GET {{baseUrl}}/project?sort=-createdAt
+Authorization: Bearer {{token}}
+
+###
+
+### 3.11 Obtener proyecto concreto por ID
+GET {{baseUrl}}/project/{{projectId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 3.12 Obtener proyecto con ID inexistente (404)
+GET {{baseUrl}}/project/000000000000000000000000
+Authorization: Bearer {{token}}
+
+###
+
+### 3.13 Actualizar proyecto (PUT)
+PUT {{baseUrl}}/project/{{projectId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Reforma Oficinas Centro (Fase 2)",
+  "notes": "Segunda fase — fontanería y electricidad",
+  "active": true
+}
+
+###
+
+### 3.14 Borrar proyecto — soft delete (?soft=true)
+DELETE {{baseUrl}}/project/{{projectId}}?soft=true
+Authorization: Bearer {{token}}
+
+###
+
+### 3.15 Listar proyectos archivados
+GET {{baseUrl}}/project/archived
+Authorization: Bearer {{token}}
+
+###
+
+### 3.16 Restaurar proyecto archivado
+PATCH {{baseUrl}}/project/{{projectId}}/restore
+Authorization: Bearer {{token}}
+
+###
+
+### 3.17 Borrar proyecto — hard delete (?soft=false)
+DELETE {{baseUrl}}/project/{{projectId}}?soft=false
+Authorization: Bearer {{token}}
+
+
+### =============================================================
+### SECCIÓN 4 — ALBARANES (2 puntos)
+### =============================================================
+
+### 4.1 Crear albarán de HORAS simple (201 Created)
+# @name createNoteHours
+POST {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "project": "{{projectId}}",
+  "client": "{{clientId}}",
+  "format": "hours",
+  "description": "Instalación eléctrica planta baja",
+  "workDate": "2025-06-15",
+  "hours": 8
+}
+
+###
+
+### 4.2 Crear albarán de HORAS con múltiples trabajadores
+POST {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "project": "{{projectId}}",
+  "client": "{{clientId}}",
+  "format": "hours",
+  "description": "Pintura interior completa",
+  "workDate": "2025-06-16",
+  "workers": [
+    { "name": "Juan García", "hours": 8 },
+    { "name": "Pedro López", "hours": 6 },
+    { "name": "Ana Martínez", "hours": 7 }
+  ]
+}
+
+###
+
+### 4.3 Crear albarán de MATERIALES (201 Created)
+# @name createNoteMaterial
+POST {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "project": "{{projectId}}",
+  "client": "{{clientId}}",
+  "format": "material",
+  "description": "Suministro de cable eléctrico",
+  "workDate": "2025-06-14",
+  "material": "Cable eléctrico 2.5mm",
+  "quantity": 150,
+  "unit": "metros"
+}
+
+###
+
+### 4.4 Crear albarán — proyecto inexistente (404)
+POST {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "project": "000000000000000000000000",
+  "client": "{{clientId}}",
+  "format": "hours",
+  "description": "Trabajo fantasma",
+  "workDate": "2025-06-01",
+  "hours": 4
+}
+
+###
+
+### 4.5 Crear albarán — formato inválido (400)
+POST {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "project": "{{projectId}}",
+  "client": "{{clientId}}",
+  "format": "invalido",
+  "description": "Test",
+  "workDate": "2025-06-01"
+}
+
+###
+
+### 4.6 Listar albaranes (paginación por defecto)
+GET {{baseUrl}}/deliverynote
+Authorization: Bearer {{token}}
+
+###
+
+### 4.7 Listar albaranes — paginación explícita
+GET {{baseUrl}}/deliverynote?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+### 4.8 Listar albaranes — filtro por proyecto
+GET {{baseUrl}}/deliverynote?project={{projectId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.9 Listar albaranes — filtro por cliente
+GET {{baseUrl}}/deliverynote?client={{clientId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.10 Listar albaranes — solo de horas
+GET {{baseUrl}}/deliverynote?format=hours
+Authorization: Bearer {{token}}
+
+###
+
+### 4.11 Listar albaranes — solo firmados
+GET {{baseUrl}}/deliverynote?signed=true
+Authorization: Bearer {{token}}
+
+###
+
+### 4.12 Listar albaranes — rango de fechas
+GET {{baseUrl}}/deliverynote?from=2025-01-01&to=2025-12-31
+Authorization: Bearer {{token}}
+
+###
+
+### 4.13 Listar albaranes — ordenación por fecha de trabajo descendente
+GET {{baseUrl}}/deliverynote?sort=-workDate
+Authorization: Bearer {{token}}
+
+###
+
+### 4.14 Obtener albarán concreto por ID (con populate de usuario/cliente/proyecto)
+GET {{baseUrl}}/deliverynote/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.15 Obtener albarán con ID inexistente (404)
+GET {{baseUrl}}/deliverynote/000000000000000000000000
+Authorization: Bearer {{token}}
+
+###
+
+### 4.16 Descargar PDF de albarán SIN FIRMAR — genera en tiempo real con pdfkit (200 + application/pdf)
+GET {{baseUrl}}/deliverynote/pdf/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.17 PDF de albarán ajeno siendo GUEST — debe fallar (403 Forbidden)
+# Usa el token de un usuario guest de la misma compañía y un noteId creado por otro usuario
+GET {{baseUrl}}/deliverynote/pdf/{{noteId}}
+Authorization: Bearer TOKEN_GUEST_OTRO_USUARIO
+
+###
+
+### 4.18 PDF de albarán ajeno siendo ADMIN — debe funcionar (200)
+# Admin puede descargar cualquier nota de su compañía (incluidas de guests)
+GET {{baseUrl}}/deliverynote/pdf/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.19 Firmar albarán — subida de imagen de firma (multipart)
+# IMPORTANTE: usa el noteId de un albarán NO firmado
+PATCH {{baseUrl}}/deliverynote/{{noteId}}/sign
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="signature"; filename="firma.png"
+Content-Type: image/png
+
+< ./firma.png
+--boundary--
+
+###
+
+### 4.20 Firmar albarán ya firmado — debe fallar (400)
+PATCH {{baseUrl}}/deliverynote/{{noteId}}/sign
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="signature"; filename="firma2.png"
+Content-Type: image/png
+
+< ./firma.png
+--boundary--
+
+###
+
+### 4.21 Descargar PDF de albarán FIRMADO — redirige a Cloudinary/R2 (302 redirect)
+GET {{baseUrl}}/deliverynote/pdf/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.22 Borrar albarán NO firmado (200)
+DELETE {{baseUrl}}/deliverynote/{{noteId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 4.23 Intentar borrar albarán YA FIRMADO — debe fallar (400)
+# Usa el ID de un albarán que hayas firmado en 4.19
+DELETE {{baseUrl}}/deliverynote/{{noteId}}
+Authorization: Bearer {{token}}
+
+
+### =============================================================
+### SECCIÓN 5 — WEBSOCKETS (T10) — prueba manual con cliente WS
+### =============================================================
+# Los eventos de Socket.IO no se pueden probar directamente desde un
+# fichero .http. Usa un cliente WebSocket (wscat, Postman, navegador)
+# conectándote a:
+#
+#   ws://localhost:3000
+#
+# Con handshake JWT:
+#   { auth: { token: "<tu token>" } }
+#
+# Eventos emitidos por el servidor (escucha en el room de tu compañía):
+#   - client:new       → al crear un cliente (sección 2.1)
+#   - project:new      → al crear un proyecto (sección 3.1)
+#   - deliverynote:new → al crear un albarán (sección 4.1 - 4.3)
+#   - deliverynote:signed → al firmar un albarán (sección 4.17)
+#
+# Comando de ejemplo con wscat:
+#   npx wscat -c "ws://localhost:3000" --header "Authorization: Bearer <token>"
+
+
+### =============================================================
+### SECCIÓN 6 — SEGURIDAD GENERAL
+### =============================================================
+
+### 6.1 Petición sin token — debe devolver 401
+GET {{baseUrl}}/client
+Authorization:
+
+###
+
+### 6.2 Petición con token inválido — debe devolver 401
+GET {{baseUrl}}/project
+Authorization: Bearer token-falso-abc123
+
+###
+
+### 6.3 Rate limit — repite esta petición más de 100 veces para activarlo
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "spam@test.com",
+  "password": "test"
+}
+
+###
+
+### 6.4 Inyección NoSQL en login — debe ser sanitizada
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": { "$gt": "" },
+  "password": "cualquiera"
+}
+
+###
+
+### 6.5 Acceso a recurso de otra compañía — debe devolver 403 o 404
+# Usa el token de un usuario de otra compañía y el ID de un cliente de la tuya
+GET {{baseUrl}}/client/{{clientId}}
+Authorization: Bearer TOKEN_DE_OTRA_COMPANIA
+
+
+### =============================================================
+### SECCIÓN 7 — HEALTH CHECK Y MONITORIZACIÓN
+### =============================================================
+
+### 7.1 Health check completo
+GET http://localhost:3000/health
+
+###
+
+### 7.2 Swagger UI — abre en navegador
+# GET http://localhost:3000/api-docs
+# (No probable desde .http, abre en el navegador)

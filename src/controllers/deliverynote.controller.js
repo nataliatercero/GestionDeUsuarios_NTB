@@ -28,7 +28,7 @@ export const createDeliveryNote = async (req, res, next) => {
       company: companyId
     });
 
-    getIO()?.emit('deliverynote:created', { noteId: note._id, companyId, format: note.format });
+    getIO()?.to(companyId.toString()).emit('deliverynote:new', { noteId: note._id, companyId, format: note.format });
 
     res.status(201).json({ success: true, data: note });
   } catch (error) {
@@ -152,7 +152,7 @@ export const signDeliveryNote = async (req, res, next) => {
       { new: true }
     );
 
-    getIO()?.emit('deliverynote:signed', {
+    getIO()?.to(companyId.toString()).emit('deliverynote:signed', {
       noteId: signed._id,
       companyId,
       pdfUrl,
@@ -167,16 +167,35 @@ export const signDeliveryNote = async (req, res, next) => {
   }
 };
 
-// Obtener la URL del PDF de un albarán firmado
+// Descargar el PDF de un albarán: redirige al PDF en la nube si está firmado, o lo genera en tiempo real
 export const getDeliveryNotePdf = async (req, res, next) => {
   try {
     const companyId = req.user.company;
-    const note = await DeliveryNote.findOne({ _id: req.params.id, company: companyId });
+    const note = await DeliveryNote.findOne({ _id: req.params.id, company: companyId })
+      .populate('user', 'name lastName email')
+      .populate('client', 'name cif email')
+      .populate('project', 'name projectCode');
 
     if (!note) throw AppError.notFound('Albarán');
-    if (!note.pdfUrl) throw AppError.badRequest('El albarán aún no tiene PDF generado');
 
-    res.redirect(note.pdfUrl);
+    // Control de acceso: guest solo puede descargar sus propios albaranes;
+    // admin puede descargar los de cualquier usuario de su compañía (incluidos guests)
+    const isOwner = note.user._id.toString() === req.user._id.toString();
+    if (req.user.role !== 'admin' && !isOwner) {
+      throw AppError.forbidden('No tienes permiso para descargar este albarán');
+    }
+
+    // Si está firmado y el PDF ya existe en la nube, redirigir directamente
+    if (note.signed && note.pdfUrl) {
+      return res.redirect(note.pdfUrl);
+    }
+
+    // Para albaranes sin firmar (o sin PDF subido), generar en tiempo real con pdfkit
+    const company = await Company.findById(companyId);
+    const pdfBuffer = await generateDeliveryNotePdf(note, company);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="albaran-${note._id}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }

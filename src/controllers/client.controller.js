@@ -14,7 +14,7 @@ export const createClient = async (req, res, next) => {
 
     const client = await Client.create({ ...req.body, user: req.user._id, company: companyId });
 
-    getIO()?.emit('client:created', { clientId: client._id, companyId, name: client.name });
+    getIO()?.to(companyId.toString()).emit('client:new', { clientId: client._id, companyId, name: client.name });
 
     res.status(201).json({ success: true, data: client });
   } catch (error) {

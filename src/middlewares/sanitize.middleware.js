@@ -1,9 +1,7 @@
-// Middleware de sanitización recursiva para prevenir inyecciones NoSQL
 export const sanitizeBody = (req, res, next) => {
   if (req.body) {
     const sanitize = (obj) => {
       for (const key in obj) {
-        // Eliminar claves que empiezan con $ (operadores MongoDB)
         if (key.startsWith('$') || key.includes('.')) {
           delete obj[key];
         } else if (typeof obj[key] === 'object' && obj[key] !== null) {
@@ -16,7 +14,6 @@ export const sanitizeBody = (req, res, next) => {
   next();
 };
 
-// Middleware para prevenir ataques DoS truncando strings excesivamente largos
 export const limitStringLength = (maxLength = 10000) => (req, res, next) => {
   const truncate = (obj) => {
     for (const key in obj) {

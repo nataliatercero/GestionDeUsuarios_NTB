@@ -8,16 +8,13 @@ import Company from '../models/Company.js';
 import { uploadToCloudinary } from '../services/storage.service.js';
 import { sendVerificationEmail, sendInvitationEmail } from '../services/mail.service.js';
 
-// Función para generar ambos tokens
 const generateTokens = (userId) => {
-  // Access Token: Duración corta (desde .env)
   const accessToken = jwt.sign(
     { id: userId, jti: randomUUID() },
     process.env.JWT_SECRET_ACCESS,
     { expiresIn: process.env.JWT_EXPIRES_IN || '30m' }
   );
 
-  // Refresh Token: Duración larga (desde .env)
   const refreshToken = jwt.sign(
     { id: userId, jti: randomUUID() },
     process.env.JWT_SECRET_REFRESH,
@@ -26,8 +23,6 @@ const generateTokens = (userId) => {
 
   return { accessToken, refreshToken };
 };
-
-// REGISTRO
 
 export const register = async (req, res, next) => {
   try {
@@ -42,7 +37,6 @@ export const register = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Creamos el usuario
     const newUser = await User.create({
       email,
       password: hashedPassword,
@@ -50,7 +44,6 @@ export const register = async (req, res, next) => {
       status: 'pending'
     });
 
-    // Generamos tokens
     const { accessToken, refreshToken } = generateTokens(newUser._id);
 
     await User.collection.updateOne(
@@ -60,7 +53,6 @@ export const register = async (req, res, next) => {
 
     notificationService.emit('user:registered', newUser);
 
-    // Envío del código de verificación por email (fire-and-forget, no bloquea el registro)
     sendVerificationEmail(newUser.email, verificationCode).catch(() => {});
 
     res.status(201).json({
@@ -76,22 +68,16 @@ export const register = async (req, res, next) => {
   }
 };
 
-// LOGIN
-
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Buscar al usuario y pedir el password 
     const user = await User.findOne({ email }).select('+password');
-    
-    // Si no existe o la contraseña no coincide, lanzamos error genérico
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      // Usamos el 401 (No autorizado) para fallos de credenciales
       throw AppError.unauthorized('Email o contraseña incorrectos', 'INVALID_CREDENTIALS');
     }
 
-    // Generar el Token (JWT)
     const { accessToken, refreshToken } = generateTokens(user._id);
 
     user.refreshToken = refreshToken;
@@ -110,18 +96,13 @@ export const login = async (req, res, next) => {
   }
 };
 
-
-// ONBOARDING
-
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    // Actualizamos al usuario con los datos validados por Zod
-    // req.body ya viene "limpio" y transformado (NIF en mayúsculas)
     const userUpdated = await User.findByIdAndUpdate(
       userId,
-      req.body, 
+      req.body,
       { returnDocument: 'after', runValidators: true }
     );
 
@@ -137,7 +118,7 @@ export const updateProfile = async (req, res, next) => {
         email: userUpdated.email,
         name: userUpdated.name,
         lastName: userUpdated.lastName,
-        fullName: userUpdated.fullName, // Virtual de Mongoose
+        fullName: userUpdated.fullName,
         nif: userUpdated.nif
       }
     });
@@ -146,13 +127,8 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
-// GET PROFILE
-
-// GET PROFILE (Punto 6 de la rúbrica)
 export const getProfile = async (req, res, next) => {
   try {
-    // Buscamos al usuario por el ID que viene en el token
-    // .populate('company') busca el ID en la colección de Companies y trae el objeto entero
     const user = await User.findById(req.user._id).populate('company');
 
     if (!user) {
@@ -167,12 +143,11 @@ export const getProfile = async (req, res, next) => {
         email: user.email,
         name: user.name,
         lastName: user.lastName,
-        fullName: user.fullName, 
+        fullName: user.fullName,
         nif: user.nif,
         role: user.role,
         status: user.status,
-        // Aquí aparecerá el objeto de la empresa completo gracias al populate
-        company: user.company 
+        company: user.company
       }
     });
   } catch (error) {
@@ -180,49 +155,39 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
-// VERIFICACIÓN DE EMAIL
-
 export const verifyEmail = async (req, res, next) => {
   try {
     const { code } = req.body;
-    
-    // Buscamos al usuario de nuevo para traer los campos con select: false
+
     const user = await User.findById(req.user._id).select('+verificationCode +verificationAttempts');
 
-    // Comprobar si el usuario existe
     if (!user) {
       throw AppError.notFound('Usuario');
     }
 
-    // Comprobar si ya está verificado
     if (user.status === 'verified') {
       throw AppError.badRequest('Este email ya ha sido verificado anteriormente');
     }
 
-    // Control de intentos
     if (user.verificationAttempts <= 0) {
       throw AppError.tooManyRequests('Has agotado los 3 intentos permitidos.');
     }
 
-    // Comprobar el código
     if (user.verificationCode !== code) {
-      // Decrementamos intentos en la DB
       user.verificationAttempts -= 1;
       await user.save();
 
-      // Error 
       throw AppError.badRequest(
         `Código incorrecto. Te quedan ${user.verificationAttempts} intentos.`,
         'INVALID_VERIFICATION_CODE'
       );
     }
 
-    // Si hay éxito, modificar status a verified y devolver ACK
     await User.findByIdAndUpdate(user._id, {
       $set: { status: 'verified' },
-      $unset: { verificationCode: '', verificationAttempts: '' } // Limpiar campos
+      $unset: { verificationCode: '', verificationAttempts: '' }
     });
-    
+
     await user.save();
 
     notificationService.emit('user:verified', user);
@@ -233,15 +198,12 @@ export const verifyEmail = async (req, res, next) => {
     });
 
   } catch (error) {
-    next(error); 
+    next(error);
   }
 };
 
-// UPLAOD LOGO
-
 export const uploadLogo = async (req, res, next) => {
   try {
-    // Validar que Multer haya procesado el archivo 
     if (!req.file) {
       throw AppError.badRequest('No se ha subido ningún archivo o formato no válido');
     }
@@ -273,12 +235,10 @@ export const uploadLogo = async (req, res, next) => {
   }
 };
 
-// SOFT DELETE
-
 export const deleteUser = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { soft } = req.query; // Capturamos el ?soft=true de la URL
+    const { soft } = req.query;
 
     let user;
     let message;
@@ -293,10 +253,9 @@ export const deleteUser = async (req, res, next) => {
 
     if (!user) throw AppError.notFound('Usuario');
 
-    // Emitimos el evento
-    notificationService.emit('user:deleted', { 
-      email: user.email, 
-      type: soft === 'true' ? 'soft' : 'hard' 
+    notificationService.emit('user:deleted', {
+      email: user.email,
+      type: soft === 'true' ? 'soft' : 'hard'
     });
 
     res.status(200).json({
@@ -309,27 +268,22 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-// DELETE (para admins)
-
 export const deleteUserByAdmin = async (req, res, next) => {
   try {
-    const { id } = req.params; // ID del usuario a borrar
+    const { id } = req.params;
     const { soft } = req.query;
-    const adminCompanyId = req.user.company; // Empresa del admin que ejecuta
+    const adminCompanyId = req.user.company;
 
-    // Buscamos al usuario que queremos borrar
     const userToDelete = await User.findById(id);
 
     if (!userToDelete.company || userToDelete.company.toString() !== adminCompanyId.toString()) {
       throw AppError.forbidden('No puedes borrar a un usuario de otra empresa');
     }
 
-    // SEGURIDAD: Verificar que pertenecen a la misma empresa
     if (userToDelete.company.toString() !== adminCompanyId.toString()) {
       throw AppError.forbidden('No puedes borrar a un usuario de otra empresa');
     }
 
-    // Ejecutar el borrado
     let deletedUser;
     if (soft === 'true') {
       deletedUser = await User.softDeleteById(id, req.user._id.toString());
@@ -353,7 +307,6 @@ export const deleteUserByAdmin = async (req, res, next) => {
   }
 };
 
-// GET TRASH (Papelera de usuarios para admins)
 export const getTrash = async (req, res, next) => {
   try {
     const deletedUsers = await User.findDeleted({ company: req.user.company });
@@ -368,8 +321,6 @@ export const getTrash = async (req, res, next) => {
   }
 };
 
-// INVITE USER
-
 export const inviteUser = async (req, res, next) => {
   try {
     const { email, name, lastName, nif } = req.body;
@@ -377,11 +328,9 @@ export const inviteUser = async (req, res, next) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) throw AppError.conflict('El usuario ya está registrado');
 
-    // Generar salt explícito
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('Temporal123!', salt);
 
-    // Crear usuario
     const newUser = await User.create({
       email,
       name,
@@ -390,14 +339,12 @@ export const inviteUser = async (req, res, next) => {
       password: hashedPassword,
       company: req.user.company,
       role: 'guest',
-      status: 'verified' 
+      status: 'verified'
     });
 
-    // Buscar empresa
     const company = await Company.findById(req.user.company);
     const companyName = company?.name || 'Compañía';
 
-    // Emitir evento con toda la info
     notificationService.emit('user:invited', {
       guestName: newUser.fullName,
       adminName: req.user.fullName,
@@ -405,7 +352,6 @@ export const inviteUser = async (req, res, next) => {
       email: newUser.email
     });
 
-    // Envío del email de invitación (fire-and-forget)
     sendInvitationEmail(newUser.email, newUser.fullName, companyName, 'Temporal123!').catch(() => {});
 
     res.status(201).json({
@@ -424,25 +370,20 @@ export const inviteUser = async (req, res, next) => {
   }
 };
 
-// CAMBIAR CONTRASEÑA
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
-    // Buscamos al usuario incluyendo el password (que está oculto por defecto)
+
     const user = await User.findById(req.user._id).select('+password');
 
-    // Comprobar que la contraseña actual es correcta
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       throw AppError.unauthorized('La contraseña actual es incorrecta');
     }
 
-    // Generar nuevo SALT y Hash para la nueva contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Actualizar y guardar
     user.password = hashedPassword;
     await user.save();
 
@@ -455,25 +396,21 @@ export const changePassword = async (req, res, next) => {
   }
 };
 
-// REFRESH
-
 export const refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) throw AppError.unauthorized('No hay token');
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH);
-    
-    // Buscamos al usuario y comprobamos su token guardado
+
     const user = await User.findById(decoded.id).select('+refreshToken');
 
-    // Si el token enviado NO coincide con el de la DB (porque hubo logout), denegamos
     if (!user || user.refreshToken !== refreshToken) {
       throw AppError.unauthorized('Sesión expirada o invalidada. Haz login de nuevo.');
     }
 
     const tokens = generateTokens(user._id);
-    
+
     await User.collection.updateOne(
       { _id: user._id },
       { $set: { refreshToken: tokens.refreshToken } }
@@ -489,7 +426,6 @@ export const refresh = async (req, res, next) => {
   }
 };
 
-// LOGOUT
 export const logout = async (req, res, next) => {
   try {
     await User.collection.updateOne(

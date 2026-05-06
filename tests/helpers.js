@@ -2,8 +2,6 @@ import request from 'supertest';
 import app from '../src/app.js';
 import mongoose from 'mongoose';
 
-// Helpers de usuario (misma lógica que intermedia.test.js) 
-
 export const registerUser = async (overrides = {}) => {
   const payload = {
     email: `user_${Date.now()}_${Math.random().toString(36).slice(2)}@test.com`,
@@ -62,16 +60,12 @@ export const fullOnboarding = async () => {
   return { ...user, me: meRes.body.data };
 };
 
-// Factories de datos 
-
-// CIF de 9 caracteres: letra + 8 dígitos aleatorios
 export const makeClient = (overrides = {}) => ({
   name: 'Constructora López S.L.',
   cif: `A${Math.random().toString().slice(2, 10)}`,
   ...overrides,
 });
 
-// Código de proyecto único en cada llamada
 export const makeProject = (clientId, overrides = {}) => ({
   name: 'Reforma Oficina',
   projectCode: `PRJ${Math.random().toString().slice(2, 9)}`,

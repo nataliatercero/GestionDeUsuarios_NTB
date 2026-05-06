@@ -1,10 +1,9 @@
 import { IncomingWebhook } from '@slack/webhook';
 
-const webhook = process.env.SLACK_WEBHOOK
+const webhook = process.env.SLACK_WEBHOOK && process.env.NODE_ENV !== 'test'
   ? new IncomingWebhook(process.env.SLACK_WEBHOOK)
   : null;
 
-// Envío genérico a Slack
 export const sendSlackNotification = async (text) => {
   if (!webhook) return;
   try {
@@ -14,7 +13,6 @@ export const sendSlackNotification = async (text) => {
   }
 };
 
-// Solo para errores 5XX 
 export const notifySlack5xxError = (req, err) => {
   if (!webhook) return;
 
@@ -26,16 +24,18 @@ export const notifySlack5xxError = (req, err) => {
     ? `\n\`\`\`${err.stack.slice(0, 600)}\`\`\``
     : '';
 
+  const timestamp = new Date().toISOString();
+
   webhook.send({
     text: [
       `🚨 *Error ${status} en la API*`,
+      `*Timestamp:* ${timestamp}`,
       `*Endpoint:* \`${method} ${path}\``,
       `*Mensaje:* ${message}${stack}`,
     ].join('\n'),
   }).catch(slackErr => console.error('[Slack] Error al enviar 5XX:', slackErr.message));
 };
 
-// Stream para morgan-body 
 export const loggerStream = {
   write: (message) => console.error(message.trimEnd()),
 };

@@ -9,7 +9,6 @@ export const setupSocket = (httpServer) => {
     cors: { origin: '*' },
   });
 
-  // JWT auth: solo usuarios autenticados pueden conectarse
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
@@ -27,7 +26,6 @@ export const setupSocket = (httpServer) => {
   });
 
   io.on('connection', (socket) => {
-    // Unir al socket al room de su compañía para aislar eventos entre empresas
     const companyId = socket.user?.company?.toString();
     if (companyId) socket.join(companyId);
 

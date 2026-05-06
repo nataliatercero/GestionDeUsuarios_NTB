@@ -1,9 +1,6 @@
 import request from 'supertest';
 import app from '../src/app.js';
 
-// Helpers
-
-// Registra un usuario y devuelve { token, refreshToken, userId }
 const registerUser = async (overrides = {}) => {
   const payload = {
     email: `user_${Date.now()}_${Math.random().toString(36).slice(2)}@test.com`,
@@ -22,7 +19,6 @@ const registerUser = async (overrides = {}) => {
   };
 };
 
-// Devuelve el código de verificación leyendo el usuario desde la DB (en tests usamos mongoose directamente)
 const getVerificationCode = async (userId) => {
   const mongoose = (await import('mongoose')).default;
   const doc = await mongoose.connection
@@ -31,7 +27,6 @@ const getVerificationCode = async (userId) => {
   return doc?.verificationCode;
 };
 
-// Registra, verifica el email y devuelve los datos del usuario
 const registerAndVerify = async (overrides = {}) => {
   const user = await registerUser(overrides);
   const code = await getVerificationCode(user.userId);
@@ -42,17 +37,14 @@ const registerAndVerify = async (overrides = {}) => {
   return user;
 };
 
-// Registra, verifica, completa el perfil y crea empresa. Devuelve todo.
 const fullOnboarding = async (overrides = {}) => {
   const user = await registerAndVerify(overrides);
 
-  // Perfil personal
   await request(app)
     .put('/api/user/register')
     .set('Authorization', `Bearer ${user.token}`)
     .send({ name: 'Test', lastName: 'User', nif: '12345678A' });
 
-  // Empresa
   const cif = `B${Date.now().toString().slice(-8)}`;
   await request(app)
     .patch('/api/user/company')
@@ -70,7 +62,6 @@ const fullOnboarding = async (overrides = {}) => {
       },
     });
 
-  // Refrescar token (la empresa ya está asociada)
   const meRes = await request(app)
     .get('/api/user/me')
     .set('Authorization', `Bearer ${user.token}`);
@@ -80,7 +71,6 @@ const fullOnboarding = async (overrides = {}) => {
 
 
 describe('User API — Práctica Intermedia', () => {
-  // REGISTRO
   describe('POST /api/user/register', () => {
     it('201 — registra un usuario con email y password válidos', async () => {
       const { statusCode, body } = await registerUser();
@@ -93,7 +83,7 @@ describe('User API — Práctica Intermedia', () => {
     });
 
     it('409 — rechaza email duplicado', async () => {
-      const { email } = await registerUser(); // email dinámico
+      const { email } = await registerUser();
 
       const res = await request(app)
         .post('/api/user/register')
@@ -134,7 +124,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // LOGIN
   describe('POST /api/user/login', () => {
     it('200 — login correcto devuelve tokens', async () => {
       const { email, password } = await registerUser();
@@ -175,7 +164,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // VERIFICACIÓN DE EMAIL 
   describe('PUT /api/user/validation', () => {
     it('200 — verifica email con código correcto', async () => {
       const user = await registerUser();
@@ -220,7 +208,6 @@ describe('User API — Práctica Intermedia', () => {
     it('429 — bloquea tras agotar los intentos', async () => {
       const user = await registerUser();
 
-      // 3 intentos fallidos (agota verificationAttempts = 3)
       for (let i = 0; i < 3; i++) {
         await request(app)
           .put('/api/user/validation')
@@ -228,7 +215,6 @@ describe('User API — Práctica Intermedia', () => {
           .send({ code: '000000' });
       }
 
-      // 4º intento → debe bloquearse
       const res = await request(app)
         .put('/api/user/validation')
         .set('Authorization', `Bearer ${user.token}`)
@@ -257,7 +243,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ONBOARDING PERSONAL
   describe('PUT /api/user/register (perfil personal)', () => {
     it('200 — actualiza nombre, apellido y NIF', async () => {
       const user = await registerAndVerify();
@@ -270,7 +255,6 @@ describe('User API — Práctica Intermedia', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.data.name).toBe('Juan');
       expect(res.body.data.lastName).toBe('García');
-      // NIF debe guardarse en mayúsculas
       expect(res.body.data.nif).toBe('12345678Z');
     });
 
@@ -316,7 +300,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // PERFIL
   describe('GET /api/user/me', () => {
     it('200 — devuelve el perfil del usuario autenticado', async () => {
       const user = await registerAndVerify();
@@ -342,11 +325,9 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ONBOARDING EMPRESA
   describe('PATCH /api/user/company', () => {
     it('201 — admin puede crear empresa', async () => {
       const user = await registerAndVerify();
-      // Completar perfil primero
       await request(app)
         .put('/api/user/register')
         .set('Authorization', `Bearer ${user.token}`)
@@ -386,7 +367,6 @@ describe('User API — Práctica Intermedia', () => {
     it('200 — si el CIF ya existe el usuario se une como guest', async () => {
       const cif = `B${Date.now().toString().slice(-8)}`;
 
-      // Admin crea la empresa
       const admin = await registerAndVerify();
       await request(app)
         .put('/api/user/register')
@@ -403,7 +383,6 @@ describe('User API — Práctica Intermedia', () => {
           },
         });
 
-      // Segundo usuario intenta registrar el mismo CIF
       const guest = await registerAndVerify();
       await request(app)
         .put('/api/user/register')
@@ -449,7 +428,6 @@ describe('User API — Práctica Intermedia', () => {
 
     it('400 — sin perfil previo no puede crear empresa', async () => {
       const user = await registerAndVerify();
-      // NO completamos el perfil
 
       const res = await request(app)
         .patch('/api/user/company')
@@ -501,7 +479,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // CAMBIO DE CONTRASEÑA 
   describe('PUT /api/user/password', () => {
     it('200 — cambia la contraseña correctamente', async () => {
       const user = await registerAndVerify();
@@ -547,7 +524,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // REFRESH TOKEN
   describe('POST /api/user/refresh', () => {
     it('200 — devuelve nuevos tokens con refresh token válido', async () => {
       const user = await registerUser();
@@ -568,7 +544,6 @@ describe('User API — Práctica Intermedia', () => {
         .post('/api/user/refresh')
         .send({ refreshToken: user.refreshToken });
 
-      // Intentar usar el refresh token original otra vez
       const res = await request(app)
         .post('/api/user/refresh')
         .send({ refreshToken: user.refreshToken });
@@ -591,7 +566,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // LOGOUT 
   describe('POST /api/user/logout', () => {
     it('200 — cierra sesión correctamente', async () => {
       const user = await registerUser();
@@ -610,7 +584,6 @@ describe('User API — Práctica Intermedia', () => {
         .post('/api/user/logout')
         .set('Authorization', `Bearer ${user.token}`);
 
-      // Intentar usar el refresh token antiguo
       const res = await request(app)
         .post('/api/user/refresh')
         .send({ refreshToken: user.refreshToken });
@@ -619,7 +592,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // BORRADO DE USUARIO
   describe('DELETE /api/user', () => {
     it('200 — soft delete desactiva al usuario', async () => {
       const user = await registerAndVerify();
@@ -647,7 +619,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // INVITAR USUARIOS (Admin)
   describe('POST /api/user/invite', () => {
     it('201 — admin puede invitar a un usuario nuevo', async () => {
       const admin = await fullOnboarding();
@@ -669,7 +640,6 @@ describe('User API — Práctica Intermedia', () => {
     it('403 — guest no puede invitar usuarios', async () => {
       const admin = await fullOnboarding();
 
-      // admin.me.company viene del GET /me con populate
       const companyCif = admin.me.company.cif;
       const companyName = admin.me.company.name;
       const companyAddress = admin.me.company.address;
@@ -706,14 +676,12 @@ describe('User API — Práctica Intermedia', () => {
     it('409 — no puede invitar un email ya registrado', async () => {
       const admin = await fullOnboarding();
 
-      // Invitar la primera vez
       const email = `dup_invite_${Date.now()}@test.com`;
       await request(app)
         .post('/api/user/invite')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ email, name: 'Inv', lastName: 'Test', nif: '11223344P' });
 
-      // Segunda invitación con el mismo email
       const res = await request(app)
         .post('/api/user/invite')
         .set('Authorization', `Bearer ${admin.token}`)
@@ -731,7 +699,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // PAPELERA (Admin)
   describe('GET /api/user/trash', () => {
     it('200 — admin puede ver la papelera', async () => {
       const admin = await fullOnboarding();
@@ -747,7 +714,6 @@ describe('User API — Práctica Intermedia', () => {
     it('200 — usuario soft-deleted aparece en la papelera', async () => {
       const admin = await fullOnboarding();
 
-      // Invitamos a un guest
       const email = `trash_${Date.now()}@test.com`;
       const inviteRes = await request(app)
         .post('/api/user/invite')
@@ -756,7 +722,6 @@ describe('User API — Práctica Intermedia', () => {
 
       const guestId = inviteRes.body.data.id;
 
-      // Admin hace soft delete del guest
       await request(app)
         .delete(`/api/user/${guestId}?soft=true`)
         .set('Authorization', `Bearer ${admin.token}`);
@@ -775,7 +740,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── GET /api/user (ruta exacta del guion) ────────────────────────────────────
   describe('GET /api/user', () => {
     it('200 — devuelve el perfil con company populada', async () => {
       const admin = await fullOnboarding();
@@ -818,7 +782,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // HEALTH CHECK
   describe('GET /health', () => {
     it('200 — responde con estado ok y db connected', async () => {
       const res = await request(app).get('/health');
@@ -831,7 +794,6 @@ describe('User API — Práctica Intermedia', () => {
     });
   });
 
-  // ── RUTAS NO REGISTRADAS ──────────────────────────────────────────────────────
   describe('Rutas no encontradas', () => {
     it('404 — ruta inexistente devuelve 404', async () => {
       const res = await request(app).get('/api/ruta-inexistente');

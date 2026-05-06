@@ -17,20 +17,16 @@ const startServer = async () => {
       console.log(`Servidor de bildy app en: http://localhost:${PORT}`);
     });
 
-    // ── Graceful shutdown ──────────────────────────────────────────────────
     const shutdown = async (signal) => {
       console.log(`\n[${signal}] Cerrando servidor...`);
 
-      // 1. Dejar de aceptar nuevas conexiones HTTP
       httpServer.close(async () => {
         console.log('Servidor HTTP cerrado.');
 
         try {
-          // 2. Cerrar todas las conexiones Socket.IO
           await getIO()?.close();
           console.log('Socket.IO cerrado.');
 
-          // 3. Cerrar conexión a MongoDB
           await mongoose.connection.close();
           console.log('Conexión a MongoDB cerrada.');
           process.exit(0);
@@ -40,7 +36,6 @@ const startServer = async () => {
         }
       });
 
-      // Forzar salida si tarda más de 10 segundos
       setTimeout(() => {
         console.error('Cierre forzado por timeout.');
         process.exit(1);

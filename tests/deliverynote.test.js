@@ -5,7 +5,6 @@ import { fullOnboarding, makeClient, makeProject } from './helpers.js';
 
 describe('DeliveryNote API', () => {
 
-  // Helpers internos para reducir setup repetitivo
   const createClient = async (token) => {
     const res = await request(app)
       .post('/api/client')
@@ -42,7 +41,6 @@ describe('DeliveryNote API', () => {
     ...overrides,
   });
 
-  // CREAR ALBARÁN 
   describe('POST /api/deliverynote', () => {
     let token;
     let projectId;
@@ -103,7 +101,6 @@ describe('DeliveryNote API', () => {
         .send(makeMaterialNote(projectId));
 
       expect(res.statusCode).toBe(201);
-      // El client en el albarán debe coincidir con el del proyecto
       const noteClientId = res.body.data.client.toString?.() ?? res.body.data.client;
       expect(noteClientId).toBe(clientId);
     });
@@ -130,7 +127,7 @@ describe('DeliveryNote API', () => {
       const res = await request(app)
         .post('/api/deliverynote')
         .set('Authorization', `Bearer ${token}`)
-        .send({ project: projectId, format: 'material' }); // falta material, quantity, unit
+        .send({ project: projectId, format: 'material' });
 
       expect(res.statusCode).toBe(400);
     });
@@ -144,7 +141,6 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // LISTAR ALBARANES
   describe('GET /api/deliverynote', () => {
     let token;
     let projectId;
@@ -155,7 +151,6 @@ describe('DeliveryNote API', () => {
       const clientId = await createClient(token);
       projectId = await createProject(token, clientId);
 
-      // Crear albaranes variados para los filtros
       await request(app).post('/api/deliverynote').set('Authorization', `Bearer ${token}`)
         .send(makeMaterialNote(projectId, { workDate: '2024-03-10' }));
       await request(app).post('/api/deliverynote').set('Authorization', `Bearer ${token}`)
@@ -218,7 +213,7 @@ describe('DeliveryNote API', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data).toHaveLength(2); // los de 2025
+      expect(res.body.data).toHaveLength(2);
     });
 
     it('401 — sin token devuelve 401', async () => {
@@ -227,7 +222,6 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // OBTENER ALBARÁN
   describe('GET /api/deliverynote/:id', () => {
     let token;
     let noteId;
@@ -254,7 +248,6 @@ describe('DeliveryNote API', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data._id).toBe(noteId);
-      // Verificar que client y project están populados (son objetos, no solo IDs)
       expect(typeof res.body.data.client).toBe('object');
       expect(typeof res.body.data.project).toBe('object');
       expect(typeof res.body.data.user).toBe('object');
@@ -276,7 +269,6 @@ describe('DeliveryNote API', () => {
     });
   });
 
-  // ELIMINAR ALBARÁN
   describe('DELETE /api/deliverynote/:id', () => {
     let token;
     let noteId;
@@ -304,7 +296,6 @@ describe('DeliveryNote API', () => {
     });
 
     it('400 — no puede eliminar un albarán firmado', async () => {
-      // Marcar como firmado directamente en la BD
       await mongoose.connection.collection('deliverynotes').updateOne(
         { _id: new mongoose.Types.ObjectId(noteId) },
         { $set: { signed: true, signedAt: new Date() } }

@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
 
-// Mockear ANTES
 jest.unstable_mockModule('../src/services/mail.service.js', () => ({
   sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
   sendInvitationEmail:   jest.fn().mockResolvedValue(undefined),
@@ -25,7 +24,6 @@ describe('Mail Service', () => {
     sendInvitationEmail.mockClear();
   });
 
-  // EMAIL DE VERIFICACIÓN (registro)
   describe('sendVerificationEmail — POST /api/user/register', () => {
 
     it('se llama con el email y un código de 6 dígitos al registrarse', async () => {
@@ -70,7 +68,6 @@ describe('Mail Service', () => {
     });
   });
 
-  // EMAIL DE INVITACIÓN
   describe('sendInvitationEmail — POST /api/user/invite', () => {
 
     let adminToken;
@@ -93,9 +90,9 @@ describe('Mail Service', () => {
       expect(sendInvitationEmail).toHaveBeenCalledTimes(1);
       expect(sendInvitationEmail).toHaveBeenCalledWith(
         guestEmail,
-        expect.any(String),   // nombre completo del invitado
-        expect.any(String),   // nombre de la empresa
-        'Temporal123!'        // contraseña temporal
+        expect.any(String),
+        expect.any(String),
+        'Temporal123!'
       );
     });
 
@@ -141,7 +138,6 @@ describe('Mail Service', () => {
         .post('/api/user/invite')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ email: `nolastname_${Date.now()}@mail.com`, name: 'Ana', nif: '12345678B' });
-      // falta lastName
 
       expect(res.statusCode).toBe(400);
       expect(sendInvitationEmail).not.toHaveBeenCalled();

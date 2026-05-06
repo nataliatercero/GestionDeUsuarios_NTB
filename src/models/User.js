@@ -8,14 +8,14 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: [true, 'El email es requerido'],
-      unique: true, // Index
+      unique: true,
       trim: true,
       lowercase: true
     },
     password: {
       type: String,
       required: [true, 'La contraseña es requerida'],
-      select: false // Seguridad: No se envía en consultas (por defecto)
+      select: false
     },
     name: {
       type: String,
@@ -33,17 +33,17 @@ const userSchema = new Schema(
       type: String,
       enum: ['admin', 'guest'],
       default: 'admin',
-      index: true // Index 
+      index: true
     },
     status: {
       type: String,
       enum: ['pending', 'verified'],
       default: 'pending',
-      index: true // Index 
+      index: true
     },
     refreshToken: {
       type: String,
-      select: false // No lo enviamos en los GET por seguridad
+      select: false
     },
     verificationCode: {
       type: String,
@@ -55,8 +55,8 @@ const userSchema = new Schema(
     },
     company: {
       type: Schema.Types.ObjectId,
-      ref: 'Company', // Referencia para el Populate
-      index: true    // Index 
+      ref: 'Company',
+      index: true
     },
     address: {
       street: String,
@@ -67,22 +67,25 @@ const userSchema = new Schema(
     }
   },
   {
-    timestamps: true, // Crea createdAt y updatedAt automáticamente
-    versionKey: false, // Oculta el campo __v (Para respuestas un poco más limpias)
-    // Configuración para que los Virtuals aparezcan al convertir a JSON
-    toJSON: { virtuals: true },
+    timestamps: true,
+    versionKey: false,
+    toJSON: {
+      virtuals: true,
+      transform: (doc, ret) => {
+        delete ret.verificationAttempts;
+        return ret;
+      },
+    },
     toObject: { virtuals: true }
   }
 );
 
-// Virtual: fullName (No se almacena en la base de datos, se calcula al tranformar a JSON)
 userSchema.virtual('fullName').get(function () {
-  if (!this.name && !this.lastName) return null; // Retorna null si el usuario aún no ha completado el onboarding de nombre y apellidos
-  return `${this.name || ''} ${this.lastName || ''}`.trim(); // Elimina espacios sobrantes si falta alguno de los dos con .trim (si no hay alguno de los dos pone '' para que no salga "undefined")
+  if (!this.name && !this.lastName) return null;
+  return `${this.name || ''} ${this.lastName || ''}`.trim();
 });
 
 userSchema.plugin(softDeletePlugin);
 const User = mongoose.model('User', userSchema);
-
 
 export default User;

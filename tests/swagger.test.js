@@ -3,7 +3,6 @@ import app from '../src/app.js';
 
 describe('Swagger Documentation', () => {
 
-  // UI HTML
   describe('GET /api-docs', () => {
 
     it('200 — sirve la interfaz Swagger UI', async () => {
@@ -24,7 +23,6 @@ describe('Swagger Documentation', () => {
     });
   });
 
-  // SPEC JSON
   describe('GET /api-docs.json', () => {
 
     let spec;
@@ -40,7 +38,6 @@ describe('Swagger Documentation', () => {
       expect(res.headers['content-type']).toMatch(/json/);
     });
 
-    // Metadatos general
     it('tiene openapi 3.0.x', () => {
       expect(spec.openapi).toMatch(/^3\.0\./);
     });
@@ -50,7 +47,6 @@ describe('Swagger Documentation', () => {
       expect(spec.info.version).toBeDefined();
     });
 
-    // Seguridad
     it('define el esquema de seguridad bearerAuth', () => {
       const schemes = spec.components?.securitySchemes;
       expect(schemes).toBeDefined();
@@ -59,7 +55,6 @@ describe('Swagger Documentation', () => {
       expect(schemes.bearerAuth.scheme).toBe('bearer');
     });
 
-    // Schemas
     const expectedSchemas = [
       'User', 'Company', 'Client', 'ClientInput',
       'Project', 'ProjectInput',
@@ -73,7 +68,6 @@ describe('Swagger Documentation', () => {
       });
     });
 
-    // Respuestas reutilizables
     const expectedResponses = ['Unauthorized', 'NotFound', 'BadRequest', 'Conflict'];
 
     expectedResponses.forEach(name => {
@@ -82,9 +76,7 @@ describe('Swagger Documentation', () => {
       });
     });
 
-    // Rutas documentadas
     const expectedPaths = [
-      // Usuarios
       '/api/user/register',
       '/api/user/login',
       '/api/user/validation',
@@ -98,17 +90,14 @@ describe('Swagger Documentation', () => {
       '/api/user/trash',
       '/api/user',
       '/api/user/{id}',
-      // Clientes
       '/api/client',
       '/api/client/archived',
       '/api/client/{id}',
       '/api/client/{id}/restore',
-      // Proyectos
       '/api/project',
       '/api/project/archived',
       '/api/project/{id}',
       '/api/project/{id}/restore',
-      // Albaranes
       '/api/deliverynote',
       '/api/deliverynote/pdf/{id}',
       '/api/deliverynote/{id}',
@@ -125,7 +114,6 @@ describe('Swagger Documentation', () => {
       expect(Object.keys(spec.paths)).toHaveLength(expectedPaths.length);
     });
 
-    // Métodos HTTP 
     it('POST /api/user/register tiene requestBody y respuesta 201', () => {
       const op = spec.paths['/api/user/register']?.post;
       expect(op).toBeDefined();

@@ -4,7 +4,6 @@ import { fullOnboarding, registerAndVerify, makeClient } from './helpers.js';
 
 describe('Client API', () => {
 
-  // CREAR CLIENTE
   describe('POST /api/client', () => {
     let token;
 
@@ -91,7 +90,6 @@ describe('Client API', () => {
     });
   });
 
-  // LISTAR CLIENTES
   describe('GET /api/client', () => {
     let token;
 
@@ -157,7 +155,6 @@ describe('Client API', () => {
     });
   });
 
-  // OBTENER CLIENTE
   describe('GET /api/client/:id', () => {
     let token;
     let clientId;
@@ -205,7 +202,6 @@ describe('Client API', () => {
     });
   });
 
-  // ACTUALIZAR CLIENTE
   describe('PUT /api/client/:id', () => {
     let token;
     let clientId;
@@ -264,7 +260,6 @@ describe('Client API', () => {
     });
   });
 
-  // ELIMINAR Y ARCHIVAR
   describe('DELETE /api/client/:id', () => {
     let token;
     let clientId;
@@ -320,7 +315,6 @@ describe('Client API', () => {
     });
   });
 
-  // CLIENTES ARCHIVADOS
   describe('GET /api/client/archived', () => {
     let token;
     let clientId;
@@ -367,7 +361,6 @@ describe('Client API', () => {
     });
   });
 
-  // RESTAURAR CLIENTE
   describe('PATCH /api/client/:id/restore', () => {
     let token;
     let clientId;

@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
 
-// ── Mock storage.service ANTES de que cualquier módulo lo importe ─────────────
 const mockUploadToCloudinary = jest.fn();
 
 jest.unstable_mockModule('../src/services/storage.service.js', () => ({
@@ -8,7 +7,6 @@ jest.unstable_mockModule('../src/services/storage.service.js', () => ({
   deleteFromCloudinary: jest.fn(),
 }));
 
-// ── Referencias (pobladas en beforeAll) ──────────────────────────────────────
 let request, app, fullOnboarding, registerAndVerify;
 
 beforeAll(async () => {
@@ -26,8 +24,6 @@ beforeAll(async () => {
 afterEach(() => {
   mockUploadToCloudinary.mockReset();
 });
-
-// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('PATCH /api/user/logo', () => {
   const fakeLogoUrl = 'https://res.cloudinary.com/test/bildy/logos/logo-test.webp';
@@ -90,7 +86,6 @@ describe('PATCH /api/user/logo', () => {
     setupMock();
     const user = await registerAndVerify();
 
-    // Completa perfil personal pero NO el onboarding de empresa
     await request(app)
       .put('/api/user/register')
       .set('Authorization', `Bearer ${user.token}`)

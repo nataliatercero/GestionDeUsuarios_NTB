@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
 
-// ── Mock 
 const mockSend = jest.fn().mockResolvedValue({});
 
 jest.unstable_mockModule('@slack/webhook', () => ({
@@ -14,6 +13,7 @@ let AppError;
 
 beforeAll(async () => {
   process.env.SLACK_WEBHOOK = 'https://hooks.slack.com/services/test';
+  process.env.NODE_ENV = 'development';
 
   const handleLoggerMod = await import('../src/utils/handleLogger.js');
   sendSlackNotification = handleLoggerMod.sendSlackNotification;
@@ -33,8 +33,6 @@ beforeAll(async () => {
 afterEach(() => {
   mockSend.mockClear();
 });
-
-// handleLogger tests
 
 describe('sendSlackNotification', () => {
   it('calls webhook.send with the correct text', async () => {
@@ -116,8 +114,6 @@ describe('loggerStream', () => {
   });
 });
 
-// error handler -> Slack
-
 describe('error handler → Slack', () => {
   const mockRes = () => {
     const res = {};
@@ -187,8 +183,6 @@ describe('error handler → Slack', () => {
     );
   });
 });
-
-// notification service → Slack 
 
 describe('notification service → Slack', () => {
   it('sends Slack on user:registered with user email', () => {

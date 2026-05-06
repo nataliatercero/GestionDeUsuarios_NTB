@@ -1,20 +1,24 @@
 import Client from '../models/Client.js';
+import Company from '../models/Company.js';
 import { AppError } from '../utils/AppError.js';
 import { getIO } from '../sockets/index.js';
 
-// Crear un nuevo cliente asociado a la empresa del usuario
 export const createClient = async (req, res, next) => {
   try {
     const companyId = req.user.company;
     if (!companyId) throw AppError.badRequest('Debes completar el onboarding de empresa primero');
 
-    // Evitar CIF duplicados en la misma empresa
     const existing = await Client.findOne({ cif: req.body.cif, company: companyId });
     if (existing) throw AppError.conflict('Ya existe un cliente con ese CIF en tu empresa');
 
     const client = await Client.create({ ...req.body, user: req.user._id, company: companyId });
 
-    getIO()?.to(companyId.toString()).emit('client:new', { clientId: client._id, companyId, name: client.name });
+    const company = await Company.findById(companyId).select('name');
+    getIO()?.to(companyId.toString()).emit('client:new', {
+      clientId: client._id,
+      clientName: client.name,
+      companyName: company?.name,
+    });
 
     res.status(201).json({ success: true, data: client });
   } catch (error) {
@@ -22,14 +26,12 @@ export const createClient = async (req, res, next) => {
   }
 };
 
-// Actualizar datos de un cliente existente
 export const updateClient = async (req, res, next) => {
   try {
     const companyId = req.user.company;
     const client = await Client.findOne({ _id: req.params.id, company: companyId });
     if (!client) throw AppError.notFound('Cliente');
 
-    // Si se intenta cambiar el CIF, verificar que no choque con otro cliente
     if (req.body.cif) {
       const conflict = await Client.findOne({ cif: req.body.cif, company: companyId, _id: { $ne: client._id } });
       if (conflict) throw AppError.conflict('Ya existe un cliente con ese CIF en tu empresa');
@@ -43,18 +45,19 @@ export const updateClient = async (req, res, next) => {
   }
 };
 
-// Obtener lista de clientes con paginación y filtro por nombre
 export const getClients = async (req, res, next) => {
   try {
     const companyId = req.user.company;
     const { page = 1, limit = 10, name, sort = 'createdAt' } = req.query;
 
     const filter = { company: companyId };
-    if (name) filter.name = { $regex: name, $options: 'i' }; // Búsqueda parcial insensible a mayúsculas
+    if (name) filter.name = { $regex: name, $options: 'i' };
 
     const skip = (Number(page) - 1) * Number(limit);
     const [clients, totalItems] = await Promise.all([
-      Client.find(filter).sort(sort).skip(skip).limit(Number(limit)),
+      Client.find(filter).sort(sort).skip(skip).limit(Number(limit))
+        .populate('user', 'name lastName')
+        .populate('company', 'name cif'),
       Client.countDocuments(filter)
     ]);
 
@@ -72,11 +75,12 @@ export const getClients = async (req, res, next) => {
   }
 };
 
-// Obtener los detalles de un cliente específico
 export const getClient = async (req, res, next) => {
   try {
     const companyId = req.user.company;
-    const client = await Client.findOne({ _id: req.params.id, company: companyId });
+    const client = await Client.findOne({ _id: req.params.id, company: companyId })
+      .populate('user', 'name lastName')
+      .populate('company', 'name cif');
     if (!client) throw AppError.notFound('Cliente');
     res.status(200).json({ success: true, data: client });
   } catch (error) {
@@ -84,20 +88,17 @@ export const getClient = async (req, res, next) => {
   }
 };
 
-// Eliminar un cliente
 export const deleteClient = async (req, res, next) => {
   try {
     const companyId = req.user.company;
     const client = await Client.findOne({ _id: req.params.id, company: companyId });
     if (!client) throw AppError.notFound('Cliente');
 
-    // Borrado lógico (archivar)
     if (req.query.soft === 'true') {
       await Client.softDeleteById(client._id, req.user._id.toString());
       return res.status(200).json({ success: true, message: 'Cliente archivado' });
     }
 
-    // Borrado físico (permanente)
     await Client.hardDelete(client._id);
     res.status(200).json({ success: true, message: 'Cliente eliminado permanentemente' });
   } catch (error) {
@@ -105,24 +106,23 @@ export const deleteClient = async (req, res, next) => {
   }
 };
 
-// Listar únicamente los clientes que han sido archivados (soft delete)
 export const getArchivedClients = async (req, res, next) => {
   try {
     const companyId = req.user.company;
-    const clients = await Client.findDeleted({ company: companyId });
+    const clients = await Client.findDeleted({ company: companyId })
+      .populate('user', 'name lastName')
+      .populate('company', 'name cif');
     res.status(200).json({ success: true, data: clients });
   } catch (error) {
     next(error);
   }
 };
 
-// Restaurar un cliente que estaba previamente archivado
 export const restoreClient = async (req, res, next) => {
   try {
     const companyId = req.user.company;
-    // Buscamos incluyendo eliminados para poder restaurar
     const client = await Client.findOne({ _id: req.params.id, company: companyId }).setOptions({ withDeleted: true });
-    
+
     if (!client) throw AppError.notFound('Cliente');
     if (!client.deleted) throw AppError.badRequest('El cliente no está archivado');
 

@@ -1,7 +1,5 @@
 import { generateDeliveryNotePdf } from '../src/services/pdf.service.js';
 
-// PDFKit funciona 100% en memoria — no necesita servicios externos
-
 const makeNote = (overrides = {}) => ({
   _id: '507f1f77bcf86cd799439011',
   format: 'material',
@@ -77,7 +75,6 @@ describe('generateDeliveryNotePdf', () => {
   });
 
   it('genera PDF con imagen de firma inválida — el catch muestra el texto de fallback', async () => {
-    // doc.image() lanzará porque el path no existe; el catch lo captura y añade texto
     const buf = await generateDeliveryNotePdf(
       makeNote({ signed: true, signedAt: new Date(), signatureUrl: './nonexistent-signature.png' }),
       makeCompany()

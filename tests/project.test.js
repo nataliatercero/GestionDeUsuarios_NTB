@@ -20,7 +20,6 @@ describe('Project API', () => {
     return res.body.data._id;
   };
 
-  // CREAR PROYECTO
   describe('POST /api/project', () => {
     let token;
     let clientId;
@@ -99,7 +98,6 @@ describe('Project API', () => {
     });
   });
 
-  // LISTAR PROYECTOS
   describe('GET /api/project', () => {
     let token;
     let clientId;
@@ -186,7 +184,6 @@ describe('Project API', () => {
     });
   });
 
-  // OBTENER PROYECTO
   describe('GET /api/project/:id', () => {
     let token;
     let projectId;
@@ -233,7 +230,6 @@ describe('Project API', () => {
     });
   });
 
-  // ACTUALIZAR PROYECTO
   describe('PUT /api/project/:id', () => {
     let token;
     let projectId;
@@ -287,7 +283,6 @@ describe('Project API', () => {
     });
   });
 
-  // ELIMINAR Y ARCHIVAR
   describe('DELETE /api/project/:id', () => {
     let token;
     let projectId;
@@ -338,7 +333,6 @@ describe('Project API', () => {
     });
   });
 
-  // PROYECTOS ARCHIVADOS 
   describe('GET /api/project/archived', () => {
     let token;
     let projectId;
@@ -381,7 +375,6 @@ describe('Project API', () => {
     });
   });
 
-  // RESTAURAR PROYECTO
   describe('PATCH /api/project/:id/restore', () => {
     let token;
     let projectId;

@@ -31,13 +31,10 @@ describe('Sign & PDF API', () => {
     ({ generateDeliveryNotePdf } = await import('../src/services/pdf.service.js'));
   });
 
-  // Limpia el estado de los mocks después de cada test para evitar acumulación
   afterEach(() => {
     uploadToCloudinary.mockReset();
     generateDeliveryNotePdf.mockReset();
   });
-
-  // Helpers internos
 
   const createClient = async (token) => {
     const res = await request(app)
@@ -63,7 +60,6 @@ describe('Sign & PDF API', () => {
     return res.body.data._id;
   };
 
-  // Implementación determinista según las opciones recibidas (sin acumulación de queue)
   const setupMocks = () => {
     uploadToCloudinary.mockImplementation(async (_buffer, opts) => {
       if (opts?.resourceType === 'raw') return { url: FAKE_PDF_URL, publicId: 'pdf-id' };
@@ -72,7 +68,6 @@ describe('Sign & PDF API', () => {
     generateDeliveryNotePdf.mockResolvedValue(Buffer.from('%PDF-1.4 fake'));
   };
 
-  // PATCH /api/deliverynote/:id/sign 
   describe('PATCH /api/deliverynote/:id/sign', () => {
     let token;
     let noteId;
@@ -160,7 +155,6 @@ describe('Sign & PDF API', () => {
     });
   });
 
-  // GET /api/deliverynote/pdf/:id
   describe('GET /api/deliverynote/pdf/:id', () => {
     let token;
     let noteId;
@@ -173,10 +167,8 @@ describe('Sign & PDF API', () => {
       const clientId = await createClient(token);
       const projectId = await createProject(token, clientId);
 
-      // Albarán sin firmar (para el test 400)
       noteId = await createNote(token, projectId);
 
-      // Albarán firmado (para el test 302)
       signedNoteId = await createNote(token, projectId);
       await request(app)
         .patch(`/api/deliverynote/${signedNoteId}/sign`)
@@ -184,7 +176,7 @@ describe('Sign & PDF API', () => {
         .attach('signature', FAKE_IMAGE, { filename: 'firma.png', contentType: 'image/png' });
     });
 
-    it('302 — redirige a la URL del PDF en Cloudinary', async () => {
+    it('302 — redirige al PDF firmado en Cloudinary', async () => {
       const res = await request(app)
         .get(`/api/deliverynote/pdf/${signedNoteId}`)
         .set('Authorization', `Bearer ${token}`)
@@ -194,12 +186,13 @@ describe('Sign & PDF API', () => {
       expect(res.headers.location).toBe(FAKE_PDF_URL);
     });
 
-    it('400 — albarán sin PDF (aún no firmado)', async () => {
+    it('200 — genera PDF en tiempo real para albarán sin firmar', async () => {
       const res = await request(app)
         .get(`/api/deliverynote/pdf/${noteId}`)
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.statusCode).toBe(400);
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toMatch(/application\/pdf/);
     });
 
     it('404 — albarán no encontrado', async () => {

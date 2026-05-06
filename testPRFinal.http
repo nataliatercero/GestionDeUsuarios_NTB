@@ -6,17 +6,23 @@
 ### --- VARIABLES GLOBALES ---
 @baseUrl = http://localhost:3000/api
 
+# ⚠️  CAMBIA ESTE EMAIL ANTES DE CADA SESIÓN DE PRUEBAS NUEVA
+# Si el usuario ya existe en la BD con rol guest, el paso 1.9 dará 403.
+# Usa algo único, p.ej.: test1@bildy.com, test2@bildy.com, etc.
+@email    = test01@ejemplo.com
+@password = Bildy2026!
+
 # Capturadas automáticamente tras login
 @token         = {{login.response.body.token}}
 @refreshToken  = {{login.response.body.refreshToken}}
 
 # Rellena manualmente tras crear los recursos (copia el _id de la respuesta)
-@clientId      = PEGA_AQUI_EL_ID_DEL_CLIENTE
-@projectId     = PEGA_AQUI_EL_ID_DEL_PROYECTO
-@noteId        = PEGA_AQUI_EL_ID_DEL_ALBARAN
+@clientId      = 69fb82878f2b4ea64657d229
+@projectId     = 69fb82d78f2b4ea64657d236
+@noteId        = 69fba3d497404e31d7bce7b6
 
-# Código de verificación que llega al email (o lo ves en consola)
-@verificationCode = 000000
+# Código de verificación que llega al email (Mailtrap) o en consola de servidor
+@verificationCode = 286363
 
 
 ### =============================================================
@@ -25,6 +31,52 @@
 
 ### 0.1 Health check — servidor + MongoDB + uptime
 GET http://localhost:3000/health
+
+
+### =============================================================
+### 🔍 CONSULTA RÁPIDA — ejecuta esto en cualquier momento
+### para recuperar el token y ver los IDs de tus recursos
+### =============================================================
+
+### Q.1 Re-login — renueva @token sin re-registrarte
+# @name login
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+###
+
+### Q.2 Ver perfil + compañía del usuario actual
+GET {{baseUrl}}/user/me
+Authorization: Bearer {{token}}
+
+###
+
+### Q.3 Ver todos los clientes (copia _id del que necesites → @clientId)
+GET {{baseUrl}}/client?limit=50
+Authorization: Bearer {{token}}
+
+###
+
+### Q.4 Ver todos los proyectos (copia _id → @projectId)
+GET {{baseUrl}}/project?limit=50
+Authorization: Bearer {{token}}
+
+###
+
+### Q.5 Ver todos los albaranes (copia _id → @noteId)
+GET {{baseUrl}}/deliverynote?limit=50
+Authorization: Bearer {{token}}
+
+###
+
+### Q.6 Ver albaranes archivados / firmados
+GET {{baseUrl}}/deliverynote?signed=true&limit=50
+Authorization: Bearer {{token}}
 
 
 ### =============================================================
@@ -37,8 +89,8 @@ POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
-  "email": "bildy_admin@test.com",
-  "password": "Bildy2026!"
+  "email": "{{email}}",
+  "password": "{{password}}"
 }
 
 ###
@@ -59,8 +111,8 @@ POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
-  "email": "bildy_admin@test.com",
-  "password": "Bildy2026!"
+  "email": "{{email}}",
+  "password": "{{password}}"
 }
 
 ###
@@ -93,8 +145,8 @@ POST {{baseUrl}}/user/login
 Content-Type: application/json
 
 {
-  "email": "bildy_admin@test.com",
-  "password": "Bildy2026!"
+  "email": "{{email}}",
+  "password": "{{password}}"
 }
 
 ###
@@ -104,7 +156,7 @@ POST {{baseUrl}}/user/login
 Content-Type: application/json
 
 {
-  "email": "bildy_admin@test.com",
+  "email": "{{email}}",
   "password": "WrongPassword!"
 }
 
@@ -116,9 +168,9 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "name": "Admin",
+  "name": "Test01",
   "lastName": "BildyApp",
-  "nif": "12345678Z"
+  "nif": "12347678Z"
 }
 
 ###
@@ -130,10 +182,10 @@ Content-Type: application/json
 
 {
   "isFreelance": false,
-  "name": "BildyApp Solutions S.L.",
-  "cif": "B12345678",
+  "name": "Boo Solutions S.L.",
+  "cif": "B12061888",
   "address": {
-    "street": "Calle de la Innovación",
+    "street": "Calle de la Lada",
     "number": "42",
     "postal": "28001",
     "city": "Madrid",
@@ -205,19 +257,7 @@ Content-Type: application/json
 
 ###
 
-### 1.17 Soft delete del usuario autenticado
-DELETE {{baseUrl}}/user?soft=true
-Authorization: Bearer {{token}}
-
-###
-
-### 1.18 Hard delete del usuario autenticado
-DELETE {{baseUrl}}/user?soft=false
-Authorization: Bearer {{token}}
-
-###
-
-### 1.19 Inyección NoSQL — debe ser sanitizada (400 / 401)
+### 1.17 Inyección NoSQL — debe ser sanitizada (400 / 401)
 POST {{baseUrl}}/user/login
 Content-Type: application/json
 
@@ -578,7 +618,7 @@ Content-Type: application/json
   "project": "{{projectId}}",
   "client": "{{clientId}}",
   "format": "hours",
-  "description": "Pintura interior completa",
+  "description": "Pintura 4",
   "workDate": "2025-06-16",
   "workers": [
     { "name": "Juan García", "hours": 8 },
@@ -599,7 +639,7 @@ Content-Type: application/json
   "project": "{{projectId}}",
   "client": "{{clientId}}",
   "format": "material",
-  "description": "Suministro de cable eléctrico",
+  "description": "Suministro de agua",
   "workDate": "2025-06-14",
   "material": "Cable eléctrico 2.5mm",
   "quantity": 150,
@@ -726,10 +766,10 @@ Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="signature"; filename="firma.png"
-Content-Type: image/png
+Content-Disposition: form-data; name="signature"; filename="firma.jpg"
+Content-Type: image/jpeg
 
-< ./firma.png
+< ./firma.jpg
 --boundary--
 
 ###
@@ -740,10 +780,10 @@ Authorization: Bearer {{token}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="signature"; filename="firma2.png"
-Content-Type: image/png
+Content-Disposition: form-data; name="signature"; filename="firma.jpg"
+Content-Type: image/jpeg
 
-< ./firma.png
+< ./firma.jpg
 --boundary--
 
 ###
@@ -783,9 +823,6 @@ Authorization: Bearer {{token}}
 #   - project:new      → al crear un proyecto (sección 3.1)
 #   - deliverynote:new → al crear un albarán (sección 4.1 - 4.3)
 #   - deliverynote:signed → al firmar un albarán (sección 4.17)
-#
-# Comando de ejemplo con wscat:
-#   npx wscat -c "ws://localhost:3000" --header "Authorization: Bearer <token>"
 
 
 ### =============================================================
@@ -844,3 +881,22 @@ GET http://localhost:3000/health
 ### 7.2 Swagger UI — abre en navegador
 # GET http://localhost:3000/api-docs
 # (No probable desde .http, abre en el navegador)
+
+
+### =============================================================
+### SECCIÓN 8 — BORRADO DE USUARIO (⚠️ EJECUTAR AL FINAL)
+### Estos tests invalidan la sesión — hazlos después de todas las demás pruebas
+### =============================================================
+
+### 8.1 Soft delete — usuario autenticado queda archivado
+DELETE {{baseUrl}}/user?soft=true
+Authorization: Bearer {{token}}
+
+###
+
+### 8.2 Volver a registrar y verificar para poder hacer el hard delete
+# Repite los pasos 1.1 → 1.4 → 1.6 con un email nuevo, luego usa ese token aquí
+
+### 8.3 Hard delete — elimina el usuario permanentemente
+DELETE {{baseUrl}}/user?soft=false
+Authorization: Bearer {{token}}

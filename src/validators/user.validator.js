@@ -1,19 +1,17 @@
 import { z } from 'zod';
 
-// Esquema base con campos comunes
 const userBaseSchema = z.object({
   name: z.string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(50, 'El nombre es demasiado largo')
     .trim(),
-  
+
   email: z.string()
     .email('Formato de email inválido')
     .trim()
-    .transform((val) => val.toLowerCase()), // Normalización
+    .transform((val) => val.toLowerCase()),
 });
 
-// Esquema específico para registro (Email + Password)
 export const registerUserSchema = z.object({
   body: z.object({
     email: userBaseSchema.shape.email,
@@ -24,7 +22,6 @@ export const registerUserSchema = z.object({
   })
 });
 
-// Esquema específico para login (sin más validaciones en password, solo que no esté vacío)
 export const loginUserSchema = z.object({
   body: z.object({
     email: userBaseSchema.shape.email,
@@ -32,7 +29,6 @@ export const loginUserSchema = z.object({
   })
 });
 
-// Esquema específico para onboarding (Datos personales: Nombre, NIF y Teléfono)
 export const updateProfileSchema = z.object({
   body: z.object({
     name: userBaseSchema.shape.name,
@@ -40,12 +36,11 @@ export const updateProfileSchema = z.object({
     nif: z.string()
       .length(9, 'El NIF/CIF debe tener exactamente 9 caracteres')
       .trim()
-      .transform((val) => val.toUpperCase()), // Normalización a mayúsculas
+      .transform((val) => val.toUpperCase()),
     phone: z.string().min(9, 'El teléfono debe tener al menos 9 dígitos').optional()
   })
 });
 
-// Esquema para validar el código de verificación
 export const verifyEmailSchema = z.object({
   body: z.object({
     code: z.string()
@@ -53,7 +48,6 @@ export const verifyEmailSchema = z.object({
   })
 });
 
-// Esquema para invitar a un usuario
 export const inviteUserSchema = z.object({
   body: z.object({
     email: z.string().email().transform(val => val.toLowerCase()),
@@ -62,8 +56,6 @@ export const inviteUserSchema = z.object({
     nif: z.string().min(9)
   })
 });
-
-//Esquema para cambiar la contraseña
 
 export const changePasswordSchema = z.object({
   body: z.object({

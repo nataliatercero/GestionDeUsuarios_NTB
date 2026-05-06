@@ -180,7 +180,6 @@ const options = {
           ],
         },
       },
-      // Respuestas reutilizables
       responses: {
         Unauthorized: {
           description: 'Token no proporcionado o inválido',
@@ -200,9 +199,7 @@ const options = {
         },
       },
     },
-    // Rutas
     paths: {
-      // USER
       '/api/user/register': {
         post: {
           tags: ['Usuarios'],
@@ -459,7 +456,6 @@ const options = {
         },
       },
 
-      // CLIENT
       '/api/client': {
         get: {
           tags: ['Clientes'],
@@ -556,7 +552,6 @@ const options = {
         },
       },
 
-      // PROJECT
       '/api/project': {
         get: {
           tags: ['Proyectos'],
@@ -656,7 +651,6 @@ const options = {
         },
       },
 
-      // DELIVERYNOTE
       '/api/deliverynote': {
         get: {
           tags: ['Albaranes'],
@@ -754,7 +748,7 @@ const options = {
       },
     },
   },
-  apis: [], // Paths definidos inline arriba
+  apis: [],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

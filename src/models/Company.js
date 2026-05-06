@@ -7,9 +7,9 @@ const companySchema = new Schema(
   {
     owner: {
       type: Schema.Types.ObjectId,
-      ref: 'User', // Referencia al admin que creó la empresa
+      ref: 'User',
       required: [true, 'El propietario de la empresa es requerido'],
-      index: true // Index
+      index: true
     },
     name: {
       type: String,
@@ -19,9 +19,9 @@ const companySchema = new Schema(
     cif: {
       type: String,
       required: [true, 'El CIF es requerido'],
-      unique: true, //Index
+      unique: true,
       trim: true,
-      uppercase: true // Para que el CIF vaya en mayúsculas
+      uppercase: true
     },
     address: {
       street: String,
@@ -31,17 +31,17 @@ const companySchema = new Schema(
       province: String
     },
     logo: {
-      type: String, // La ruta de la imagen (para Multer)
+      type: String,
       default: null
     },
     isFreelance: {
       type: Boolean,
-      default: false // true si el usuario se registró como autónomo
+      default: false
     }
   },
   {
-    timestamps: true, // Crea createdAt y updatedAt automáticamente
-    versionKey: false // Oculta el campo __v (Para respuestas un poco más limpias)
+    timestamps: true,
+    versionKey: false
   }
 );
 

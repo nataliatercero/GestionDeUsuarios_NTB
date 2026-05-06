@@ -4,7 +4,6 @@ import cloudinary from '../config/cloudinary.js';
 
 const DEFAULT_MAX_WIDTH = 800;
 
-// Helper para convertir el buffer en un flujo de lectura
 const bufferToStream = (buffer) => {
   const stream = new Readable();
   stream.push(buffer);
@@ -12,7 +11,6 @@ const bufferToStream = (buffer) => {
   return stream;
 };
 
-// Sube un archivo a Cloudinary con optimización previa si es imagen
 export const uploadToCloudinary = async (fileBuffer, options = {}) => {
   const {
     folder = 'bildy',
@@ -23,7 +21,6 @@ export const uploadToCloudinary = async (fileBuffer, options = {}) => {
 
   let bufferToUpload = fileBuffer;
 
-  // Solo optimizamos con Sharp si es una imagen (para no romper los PDF)
   if (resourceType === 'image') {
     bufferToUpload = await sharp(fileBuffer)
       .resize({ width: maxWidth, withoutEnlargement: true })
@@ -32,9 +29,9 @@ export const uploadToCloudinary = async (fileBuffer, options = {}) => {
   }
 
   return new Promise((resolve, reject) => {
-    const uploadOptions = { 
-      folder, 
-      resource_type: resourceType // Esto permite 'image' o 'raw' (para PDF)
+    const uploadOptions = {
+      folder,
+      resource_type: resourceType
     };
     if (publicId) uploadOptions.public_id = publicId;
 
@@ -47,7 +44,6 @@ export const uploadToCloudinary = async (fileBuffer, options = {}) => {
   });
 };
 
-// Elimina un recurso de Cloudinary
 export const deleteFromCloudinary = async (publicId) => {
   return cloudinary.uploader.destroy(publicId);
 };

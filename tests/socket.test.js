@@ -1,16 +1,12 @@
 import { createServer } from 'http';
 import { setupSocket, getIO } from '../src/sockets/index.js';
 
-// No necesita servicios externos — Socket.IO funciona con un servidor HTTP en memoria
-
 describe('sockets/index.js', () => {
 
-  // ── Antes de cualquier setupSocket, io es null ────────────────────────────
   it('getIO devuelve null antes de llamar a setupSocket', () => {
     expect(getIO()).toBeNull();
   });
 
-  // ── Tests que requieren setupSocket ───────────────────────────────────────
   describe('tras setupSocket', () => {
     let server;
     let io;
@@ -39,7 +35,6 @@ describe('sockets/index.js', () => {
     });
 
     it('setupSocket registra el listener de conexión en el servidor', () => {
-      // io.listeners('connection') devuelve los handlers del evento
       expect(io.listeners('connection').length).toBeGreaterThan(0);
     });
   });

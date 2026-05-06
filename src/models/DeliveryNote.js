@@ -42,11 +42,9 @@ const deliveryNoteSchema = new Schema(
       type: Date,
       default: Date.now
     },
-    // Campos para format: 'material'
     material: String,
     quantity: Number,
     unit: String,
-    // Campos para format: 'hours'
     hours: Number,
     workers: [
       {
@@ -55,7 +53,6 @@ const deliveryNoteSchema = new Schema(
         _id: false
       }
     ],
-    // Firma
     signed: {
       type: Boolean,
       default: false,

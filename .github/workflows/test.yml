@@ -15,20 +15,26 @@ jobs:
         node-version: [22.x]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm install
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Run Tests
-      run: npm test
-      env:
-        # Aquí ponemos variables ficticias para que los tests no exploten
-        JWT_SECRET_ACCESS: test_secret_access
-        JWT_SECRET_REFRESH: test_secret_refresh
-        NODE_ENV: test
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Tests
+        # Creamos un .env vacío para que el comando --env-file=.env no falle
+        # Luego ejecutamos los tests pasando las variables necesarias
+        run: |
+          touch .env
+          npm test
+        env:
+          NODE_ENV: test
+          JWT_SECRET_ACCESS: test_secret_access
+          JWT_SECRET_REFRESH: test_secret_refresh
+          DATABASE_URL: mongodb://localhost:27017/test

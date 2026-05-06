@@ -14,8 +14,8 @@ POST {{baseUrl}}/user/register
 Content-Type: application/json
 
 {
-  "email": "ADMIN_MASTER@TEST.COM",
-  "password": "Password123!"
+  "email": "nataliatercero2005@gmail.com",
+  "password": "Natalia3b"
 }
 
 ### ============================================================
